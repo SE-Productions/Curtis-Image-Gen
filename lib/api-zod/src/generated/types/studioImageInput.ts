@@ -7,6 +7,7 @@
  */
 import type { StudioImageInputAspectRatio } from './studioImageInputAspectRatio';
 import type { StudioImageInputFidelity } from './studioImageInputFidelity';
+import type { StudioImageInputProvider } from './studioImageInputProvider';
 
 export interface StudioImageInput {
   /**
@@ -21,4 +22,5 @@ export interface StudioImageInput {
      */
   referenceImage?: string | null;
   fidelity?: StudioImageInputFidelity;
+  provider?: StudioImageInputProvider;
 }

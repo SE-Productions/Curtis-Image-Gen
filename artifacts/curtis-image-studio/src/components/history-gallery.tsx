@@ -1,10 +1,11 @@
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, Clock, ImageIcon, Instagram, Eye, Loader2 } from "lucide-react";
+import { Download, Trash2, Clock, ImageIcon, Instagram, Eye, Loader2, Play } from "lucide-react";
 import { HistoryItem } from "@/hooks/use-studio-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { InstagramPublishDialog } from "./instagram-publish-dialog";
+import { VideoGenerateDialog } from "./video-generate-dialog";
 
 interface HistoryGalleryProps {
   items: HistoryItem[];
@@ -91,9 +92,9 @@ export function HistoryGallery({ items, isLoading, onDelete, onSelect }: History
                   trigger={
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button 
-                          variant="secondary" 
-                          size="icon" 
+                        <Button
+                          variant="secondary"
+                          size="icon"
                           className="h-8 w-8 rounded-full shadow-md bg-pink-100 hover:bg-pink-200 text-pink-600 dark:bg-pink-900/30 dark:hover:bg-pink-900/50 dark:text-pink-500 border-0"
                           data-testid={`button-instagram-history-${item.id}`}
                         >
@@ -101,6 +102,25 @@ export function HistoryGallery({ items, isLoading, onDelete, onSelect }: History
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>Publish to Instagram</TooltipContent>
+                    </Tooltip>
+                  }
+                />
+                <VideoGenerateDialog
+                  imageDataUrl={item.output.imageDataUrl}
+                  prompt={item.input.prompt}
+                  format={item.input.aspectRatio === "9:16" ? "story" : "reel"}
+                  trigger={
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-full shadow-md"
+                        >
+                          <Play className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Animate Image</TooltipContent>
                     </Tooltip>
                   }
                 />

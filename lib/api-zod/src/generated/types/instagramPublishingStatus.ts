@@ -5,8 +5,22 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { InstagramPublishingStatusConnectionStatus } from './instagramPublishingStatusConnectionStatus';
 
 export interface InstagramPublishingStatus {
+  /** Whether Instagram publishing is currently ready to use */
   available: boolean;
+  /** Whether the server has a protected Composio configuration */
+  configured: boolean;
+  /** Whether Composio reports an active Instagram connected account */
+  connected: boolean;
+  connectionStatus: InstagramPublishingStatusConnectionStatus;
+  /**
+     * A safe alias for the connected account when Composio provides one
+     * @nullable
+     */
+  accountLabel: string | null;
   accountType: string;
+  /** @nullable */
+  updatedAt: Date | null;
 }

@@ -23,7 +23,8 @@ export const HealthCheckResponse = zod.object({
 export const GetStudioCapabilitiesResponse = zod.object({
   "imageGeneration": zod.boolean(),
   "referenceGuidance": zod.boolean(),
-  "provider": zod.string()
+  "provider": zod.string(),
+  "grokConfigured": zod.boolean()
 })
 
 
@@ -35,12 +36,14 @@ export const generateStudioImageBodyPromptMax = 6000;
 export const generateStudioImageBodyReferenceImageMax = 16000000;
 
 export const generateStudioImageBodyFidelityDefault = `high`;
+export const generateStudioImageBodyProviderDefault = `openai`;
 
 export const GenerateStudioImageBody = zod.object({
   "prompt": zod.string().min(1).max(generateStudioImageBodyPromptMax),
   "aspectRatio": zod.enum(['16:9', '9:16', '1:1']),
   "referenceImage": zod.string().max(generateStudioImageBodyReferenceImageMax).nullish(),
-  "fidelity": zod.enum(['high', 'balanced']).default(generateStudioImageBodyFidelityDefault)
+  "fidelity": zod.enum(['high', 'balanced']).default(generateStudioImageBodyFidelityDefault),
+  "provider": zod.enum(['openai', 'grok']).default(generateStudioImageBodyProviderDefault)
 })
 
 export const GenerateStudioImageResponse = zod.object({
@@ -216,11 +219,16 @@ export const GetStudioVideoResponse = zod.object({
 
 
 /**
- * @summary Get Instagram publishing availability
+ * @summary Get the authoritative Composio and Instagram connection status
  */
 export const GetInstagramPublishingStatusResponse = zod.object({
-  "available": zod.boolean(),
-  "accountType": zod.string()
+  "available": zod.boolean().describe('Whether Instagram publishing is currently ready to use'),
+  "configured": zod.boolean().describe('Whether the server has a protected Composio configuration'),
+  "connected": zod.boolean().describe('Whether Composio reports an active Instagram connected account'),
+  "connectionStatus": zod.enum(['not_configured', 'disconnected', 'connecting', 'connected', 'attention']),
+  "accountLabel": zod.string().nullable().describe('A safe alias for the connected account when Composio provides one'),
+  "accountType": zod.string(),
+  "updatedAt": zod.coerce.date().nullable()
 })
 
 
@@ -244,6 +252,12 @@ export const BeginInstagramConnectionResponse = zod.object({
 
 
 /**
+ * @summary Disconnect the studio owner's Instagram account
+ */
+export const DisconnectInstagramAccountResponse = zod.void()
+
+
+/**
  * @summary Publish a generated image to the connected Instagram account
  */
 export const publishStudioImageToInstagramBodyImageDataUrlMax = 16000000;
@@ -262,5 +276,294 @@ export const PublishStudioImageToInstagramResponse = zod.object({
   "publicImageUrl": zod.string(),
   "status": zod.string()
 })
+
+
+/**
+ * @summary Get the creator context used for planning
+ */
+export const GetCreatorDnaResponse = zod.object({
+  "voice": zod.string(),
+  "audience": zod.string(),
+  "visualStyle": zod.string(),
+  "themes": zod.array(zod.string()),
+  "offers": zod.string(),
+  "goals": zod.string(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Save the creator context used for planning
+ */
+export const updateCreatorDnaBodyVoiceMax = 2000;
+
+export const updateCreatorDnaBodyAudienceMax = 2000;
+
+export const updateCreatorDnaBodyVisualStyleMax = 2000;
+
+export const updateCreatorDnaBodyThemesItemMax = 120;
+
+export const updateCreatorDnaBodyThemesMax = 12;
+
+export const updateCreatorDnaBodyOffersMax = 2000;
+
+export const updateCreatorDnaBodyGoalsMax = 2000;
+
+
+
+export const UpdateCreatorDnaBody = zod.object({
+  "voice": zod.string().min(1).max(updateCreatorDnaBodyVoiceMax),
+  "audience": zod.string().min(1).max(updateCreatorDnaBodyAudienceMax),
+  "visualStyle": zod.string().min(1).max(updateCreatorDnaBodyVisualStyleMax),
+  "themes": zod.array(zod.string().min(1).max(updateCreatorDnaBodyThemesItemMax)).min(1).max(updateCreatorDnaBodyThemesMax),
+  "offers": zod.string().max(updateCreatorDnaBodyOffersMax),
+  "goals": zod.string().min(1).max(updateCreatorDnaBodyGoalsMax)
+})
+
+export const UpdateCreatorDnaResponse = zod.object({
+  "voice": zod.string(),
+  "audience": zod.string(),
+  "visualStyle": zod.string(),
+  "themes": zod.array(zod.string()),
+  "offers": zod.string(),
+  "goals": zod.string(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Get a persisted weekly content plan
+ */
+export const getContentPlanQueryWeekStartRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetContentPlanQueryParams = zod.object({
+  "weekStart": zod.coerce.string().regex(getContentPlanQueryWeekStartRegExp)
+})
+
+export const getContentPlanResponsePlanOneWeekStartRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getContentPlanResponsePlanOneItemsItemPlanDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GetContentPlanResponse = zod.object({
+  "plan": zod.union([zod.object({
+  "id": zod.string(),
+  "weekStart": zod.string().regex(getContentPlanResponsePlanOneWeekStartRegExp),
+  "brief": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "planDate": zod.string().regex(getContentPlanResponsePlanOneItemsItemPlanDateRegExp),
+  "title": zod.string(),
+  "concept": zod.string(),
+  "prompt": zod.string(),
+  "caption": zod.string(),
+  "format": zod.enum(['feed', 'story', 'reel']),
+  "status": zod.enum(['idea', 'generated', 'approved', 'scheduled', 'published', 'failed']),
+  "provider": zod.enum(['openai', 'grok']),
+  "selectedSceneId": zod.string().nullable(),
+  "scheduledFor": zod.coerce.date().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "instagramPostId": zod.string().nullable(),
+  "failureReason": zod.string().nullable(),
+  "variations": zod.array(zod.object({
+  "id": zod.string(),
+  "sceneId": zod.string(),
+  "ordinal": zod.number(),
+  "imageDataUrl": zod.string(),
+  "provider": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+}),zod.null()])
+})
+
+
+/**
+ * @summary Generate and persist an editable seven-day content plan
+ */
+export const generateContentPlanBodyWeekStartRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const generateContentPlanBodyBriefMax = 3000;
+
+
+
+export const GenerateContentPlanBody = zod.object({
+  "weekStart": zod.string().regex(generateContentPlanBodyWeekStartRegExp),
+  "brief": zod.string().min(1).max(generateContentPlanBodyBriefMax)
+})
+
+export const generateContentPlanResponseWeekStartRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const generateContentPlanResponseItemsItemPlanDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const GenerateContentPlanResponse = zod.object({
+  "id": zod.string(),
+  "weekStart": zod.string().regex(generateContentPlanResponseWeekStartRegExp),
+  "brief": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "planDate": zod.string().regex(generateContentPlanResponseItemsItemPlanDateRegExp),
+  "title": zod.string(),
+  "concept": zod.string(),
+  "prompt": zod.string(),
+  "caption": zod.string(),
+  "format": zod.enum(['feed', 'story', 'reel']),
+  "status": zod.enum(['idea', 'generated', 'approved', 'scheduled', 'published', 'failed']),
+  "provider": zod.enum(['openai', 'grok']),
+  "selectedSceneId": zod.string().nullable(),
+  "scheduledFor": zod.coerce.date().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "instagramPostId": zod.string().nullable(),
+  "failureReason": zod.string().nullable(),
+  "variations": zod.array(zod.object({
+  "id": zod.string(),
+  "sceneId": zod.string(),
+  "ordinal": zod.number(),
+  "imageDataUrl": zod.string(),
+  "provider": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+}))
+})
+
+
+/**
+ * @summary Edit a planned content item
+ */
+export const UpdateContentItemParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const updateContentItemBodyTitleMax = 160;
+
+export const updateContentItemBodyConceptMax = 2000;
+
+export const updateContentItemBodyPromptMax = 6000;
+
+export const updateContentItemBodyCaptionMax = 2200;
+
+
+
+export const UpdateContentItemBody = zod.object({
+  "title": zod.string().min(1).max(updateContentItemBodyTitleMax).optional(),
+  "concept": zod.string().min(1).max(updateContentItemBodyConceptMax).optional(),
+  "prompt": zod.string().min(1).max(updateContentItemBodyPromptMax).optional(),
+  "caption": zod.string().max(updateContentItemBodyCaptionMax).optional(),
+  "format": zod.enum(['feed', 'story', 'reel']).optional(),
+  "provider": zod.enum(['openai', 'grok']).optional()
+})
+
+export const updateContentItemResponsePlanDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+
+
+export const UpdateContentItemResponse = zod.object({
+  "id": zod.string(),
+  "planDate": zod.string().regex(updateContentItemResponsePlanDateRegExp),
+  "title": zod.string(),
+  "concept": zod.string(),
+  "prompt": zod.string(),
+  "caption": zod.string(),
+  "format": zod.enum(['feed', 'story', 'reel']),
+  "status": zod.enum(['idea', 'generated', 'approved', 'scheduled', 'published', 'failed']),
+  "provider": zod.enum(['openai', 'grok']),
+  "selectedSceneId": zod.string().nullable(),
+  "scheduledFor": zod.coerce.date().nullable(),
+  "publishedAt": zod.coerce.date().nullable(),
+  "instagramPostId": zod.string().nullable(),
+  "failureReason": zod.string().nullable(),
+  "variations": zod.array(zod.object({
+  "id": zod.string(),
+  "sceneId": zod.string(),
+  "ordinal": zod.number(),
+  "imageDataUrl": zod.string(),
+  "provider": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Delete a planned content item
+ */
+export const DeleteContentItemParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const DeleteContentItemResponse = zod.void()
+
+
+/**
+ * @summary Link a real generated scene to a planned content item
+ */
+export const AddContentVariationParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const AddContentVariationBody = zod.object({
+  "sceneId": zod.string()
+})
+
+export const AddContentVariationResponse = zod.void()
+
+
+/**
+ * @summary Approve one generated variation for publishing
+ */
+export const ApproveContentItemParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const ApproveContentItemBody = zod.object({
+  "sceneId": zod.string()
+})
+
+export const ApproveContentItemResponse = zod.void()
+
+
+/**
+ * @summary Schedule an approved content item
+ */
+export const ScheduleContentItemParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const ScheduleContentItemBody = zod.object({
+  "scheduledFor": zod.coerce.date()
+})
+
+export const ScheduleContentItemResponse = zod.void()
+
+
+/**
+ * @summary Return a scheduled content item to approved status
+ */
+export const UnscheduleContentItemParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const UnscheduleContentItemResponse = zod.void()
+
+
+/**
+ * @summary Record the real Instagram publication result
+ */
+export const RecordContentPublicationParams = zod.object({
+  "contentItemId": zod.coerce.string()
+})
+
+export const recordContentPublicationBodyFailureReasonMax = 1000;
+
+
+
+export const RecordContentPublicationBody = zod.object({
+  "status": zod.enum(['published', 'failed']),
+  "postId": zod.string().optional(),
+  "failureReason": zod.string().max(recordContentPublicationBodyFailureReasonMax).optional()
+})
+
+export const RecordContentPublicationResponse = zod.void()
 
 

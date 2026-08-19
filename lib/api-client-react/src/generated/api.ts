@@ -20,12 +20,24 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddContentVariationInput,
+  ApproveContentItemInput,
+  ContentItem,
+  ContentItemUpdate,
+  ContentPlan,
+  ContentPlanResult,
+  CreatorDna,
+  CreatorDnaInput,
   ErrorResponse,
+  GenerateContentPlanInput,
+  GetContentPlanParams,
   HealthStatus,
   InstagramConnection,
   InstagramPublication,
   InstagramPublishInput,
   InstagramPublishingStatus,
+  RecordContentPublicationInput,
+  ScheduleContentItemInput,
   StudioCapabilities,
   StudioImage,
   StudioImageInput,
@@ -1029,7 +1041,7 @@ export const getGetInstagramPublishingStatusUrl = () => {
 }
 
 /**
- * @summary Get Instagram publishing availability
+ * @summary Get the authoritative Composio and Instagram connection status
  */
 export const getInstagramPublishingStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<InstagramPublishingStatus> => {
 
@@ -1053,7 +1065,7 @@ export const getGetInstagramPublishingStatusQueryKey = () => {
     }
 
 
-export const getGetInstagramPublishingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetInstagramPublishingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1072,14 +1084,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetInstagramPublishingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getInstagramPublishingStatus>>>
-export type GetInstagramPublishingStatusQueryError = ErrorType<unknown>
+export type GetInstagramPublishingStatusQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Get Instagram publishing availability
+ * @summary Get the authoritative Composio and Instagram connection status
  */
 
-export function useGetInstagramPublishingStatus<TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<unknown>>(
+export function useGetInstagramPublishingStatus<TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<ErrorResponse>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1245,6 +1257,77 @@ export const useBeginInstagramConnection = <TError = ErrorType<ErrorResponse>,
       return useMutation(getBeginInstagramConnectionMutationOptions(options));
     }
 
+export const getDisconnectInstagramAccountUrl = () => {
+
+
+
+
+  return `/api/studio/instagram/connect`
+}
+
+/**
+ * @summary Disconnect the studio owner's Instagram account
+ */
+export const disconnectInstagramAccount = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDisconnectInstagramAccountUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectInstagramAccountMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectInstagramAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectInstagramAccount>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectInstagramAccount'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectInstagramAccount>>, void> = () => {
+
+
+          return  disconnectInstagramAccount(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectInstagramAccountMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectInstagramAccount>>>
+
+    export type DisconnectInstagramAccountMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Disconnect the studio owner's Instagram account
+ */
+export const useDisconnectInstagramAccount = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectInstagramAccount>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectInstagramAccount>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectInstagramAccountMutationOptions(options));
+    }
+
 export const getPublishStudioImageToInstagramUrl = () => {
 
 
@@ -1314,5 +1397,810 @@ export const usePublishStudioImageToInstagram = <TError = ErrorType<ErrorRespons
         TContext
       > => {
       return useMutation(getPublishStudioImageToInstagramMutationOptions(options));
+    }
+
+export const getGetCreatorDnaUrl = () => {
+
+
+
+
+  return `/api/studio/creator-dna`
+}
+
+/**
+ * @summary Get the creator context used for planning
+ */
+export const getCreatorDna = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreatorDna> => {
+
+  return customFetch<CreatorDna>(getGetCreatorDnaUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreatorDnaQueryKey = () => {
+    return [
+    `/api/studio/creator-dna`
+    ] as const;
+    }
+
+
+export const getGetCreatorDnaQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreatorDnaQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreatorDna>>> = ({ signal }) => getCreatorDna({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreatorDnaQueryResult = NonNullable<Awaited<ReturnType<typeof getCreatorDna>>>
+export type GetCreatorDnaQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the creator context used for planning
+ */
+
+export function useGetCreatorDna<TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreatorDnaQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateCreatorDnaUrl = () => {
+
+
+
+
+  return `/api/studio/creator-dna`
+}
+
+/**
+ * @summary Save the creator context used for planning
+ */
+export const updateCreatorDna = async (creatorDnaInput: CreatorDnaInput, options?: Parameters<typeof customFetch>[1]): Promise<CreatorDna> => {
+
+  return customFetch<CreatorDna>(getUpdateCreatorDnaUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(creatorDnaInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCreatorDnaMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext> => {
+
+const mutationKey = ['updateCreatorDna'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCreatorDna>>, {data: BodyType<CreatorDnaInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateCreatorDna(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCreatorDnaMutationResult = NonNullable<Awaited<ReturnType<typeof updateCreatorDna>>>
+    export type UpdateCreatorDnaMutationBody = BodyType<CreatorDnaInput>
+    export type UpdateCreatorDnaMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save the creator context used for planning
+ */
+export const useUpdateCreatorDna = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCreatorDna>>,
+        TError,
+        {data: BodyType<CreatorDnaInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCreatorDnaMutationOptions(options));
+    }
+
+export const getGetContentPlanUrl = (params: GetContentPlanParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/studio/content-plan?${stringifiedParams}` : `/api/studio/content-plan`
+}
+
+/**
+ * @summary Get a persisted weekly content plan
+ */
+export const getContentPlan = async (params: GetContentPlanParams, options?: Parameters<typeof customFetch>[1]): Promise<ContentPlanResult> => {
+
+  return customFetch<ContentPlanResult>(getGetContentPlanUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContentPlanQueryKey = (params?: GetContentPlanParams,) => {
+    return [
+    `/api/studio/content-plan`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContentPlanQueryOptions = <TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<unknown>>(params: GetContentPlanParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContentPlanQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContentPlan>>> = ({ signal }) => getContentPlan(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContentPlanQueryResult = NonNullable<Awaited<ReturnType<typeof getContentPlan>>>
+export type GetContentPlanQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get a persisted weekly content plan
+ */
+
+export function useGetContentPlan<TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<unknown>>(
+ params: GetContentPlanParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContentPlanQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateContentPlanUrl = () => {
+
+
+
+
+  return `/api/studio/content-plan/generate`
+}
+
+/**
+ * @summary Generate and persist an editable seven-day content plan
+ */
+export const generateContentPlan = async (generateContentPlanInput: GenerateContentPlanInput, options?: Parameters<typeof customFetch>[1]): Promise<ContentPlan> => {
+
+  return customFetch<ContentPlan>(getGenerateContentPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(generateContentPlanInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateContentPlanMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext> => {
+
+const mutationKey = ['generateContentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateContentPlan>>, {data: BodyType<GenerateContentPlanInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateContentPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateContentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof generateContentPlan>>>
+    export type GenerateContentPlanMutationBody = BodyType<GenerateContentPlanInput>
+    export type GenerateContentPlanMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate and persist an editable seven-day content plan
+ */
+export const useGenerateContentPlan = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateContentPlan>>,
+        TError,
+        {data: BodyType<GenerateContentPlanInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateContentPlanMutationOptions(options));
+    }
+
+export const getUpdateContentItemUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}`
+}
+
+/**
+ * @summary Edit a planned content item
+ */
+export const updateContentItem = async (contentItemId: string,
+    contentItemUpdate: ContentItemUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ContentItem> => {
+
+  return customFetch<ContentItem>(getUpdateContentItemUrl(contentItemId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(contentItemUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext> => {
+
+const mutationKey = ['updateContentItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateContentItem>>, {contentItemId: string;data: BodyType<ContentItemUpdate>}> = (props) => {
+          const {contentItemId,data} = props ?? {};
+
+          return  updateContentItem(contentItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateContentItem>>>
+    export type UpdateContentItemMutationBody = BodyType<ContentItemUpdate>
+    export type UpdateContentItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Edit a planned content item
+ */
+export const useUpdateContentItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateContentItem>>,
+        TError,
+        {contentItemId: string;data: BodyType<ContentItemUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateContentItemMutationOptions(options));
+    }
+
+export const getDeleteContentItemUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}`
+}
+
+/**
+ * @summary Delete a planned content item
+ */
+export const deleteContentItem = async (contentItemId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteContentItemUrl(contentItemId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteContentItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext> => {
+
+const mutationKey = ['deleteContentItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteContentItem>>, {contentItemId: string}> = (props) => {
+          const {contentItemId} = props ?? {};
+
+          return  deleteContentItem(contentItemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteContentItem>>>
+
+    export type DeleteContentItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a planned content item
+ */
+export const useDeleteContentItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteContentItem>>,
+        TError,
+        {contentItemId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteContentItemMutationOptions(options));
+    }
+
+export const getAddContentVariationUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}/variations`
+}
+
+/**
+ * @summary Link a real generated scene to a planned content item
+ */
+export const addContentVariation = async (contentItemId: string,
+    addContentVariationInput: AddContentVariationInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getAddContentVariationUrl(contentItemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(addContentVariationInput)
+  }
+);}
+
+
+
+
+
+export const getAddContentVariationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext> => {
+
+const mutationKey = ['addContentVariation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addContentVariation>>, {contentItemId: string;data: BodyType<AddContentVariationInput>}> = (props) => {
+          const {contentItemId,data} = props ?? {};
+
+          return  addContentVariation(contentItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddContentVariationMutationResult = NonNullable<Awaited<ReturnType<typeof addContentVariation>>>
+    export type AddContentVariationMutationBody = BodyType<AddContentVariationInput>
+    export type AddContentVariationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Link a real generated scene to a planned content item
+ */
+export const useAddContentVariation = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addContentVariation>>,
+        TError,
+        {contentItemId: string;data: BodyType<AddContentVariationInput>},
+        TContext
+      > => {
+      return useMutation(getAddContentVariationMutationOptions(options));
+    }
+
+export const getApproveContentItemUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}/approve`
+}
+
+/**
+ * @summary Approve one generated variation for publishing
+ */
+export const approveContentItem = async (contentItemId: string,
+    approveContentItemInput: ApproveContentItemInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getApproveContentItemUrl(contentItemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(approveContentItemInput)
+  }
+);}
+
+
+
+
+
+export const getApproveContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext> => {
+
+const mutationKey = ['approveContentItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveContentItem>>, {contentItemId: string;data: BodyType<ApproveContentItemInput>}> = (props) => {
+          const {contentItemId,data} = props ?? {};
+
+          return  approveContentItem(contentItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof approveContentItem>>>
+    export type ApproveContentItemMutationBody = BodyType<ApproveContentItemInput>
+    export type ApproveContentItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Approve one generated variation for publishing
+ */
+export const useApproveContentItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveContentItem>>,
+        TError,
+        {contentItemId: string;data: BodyType<ApproveContentItemInput>},
+        TContext
+      > => {
+      return useMutation(getApproveContentItemMutationOptions(options));
+    }
+
+export const getScheduleContentItemUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}/schedule`
+}
+
+/**
+ * @summary Schedule an approved content item
+ */
+export const scheduleContentItem = async (contentItemId: string,
+    scheduleContentItemInput: ScheduleContentItemInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getScheduleContentItemUrl(contentItemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(scheduleContentItemInput)
+  }
+);}
+
+
+
+
+
+export const getScheduleContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext> => {
+
+const mutationKey = ['scheduleContentItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scheduleContentItem>>, {contentItemId: string;data: BodyType<ScheduleContentItemInput>}> = (props) => {
+          const {contentItemId,data} = props ?? {};
+
+          return  scheduleContentItem(contentItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScheduleContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof scheduleContentItem>>>
+    export type ScheduleContentItemMutationBody = BodyType<ScheduleContentItemInput>
+    export type ScheduleContentItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Schedule an approved content item
+ */
+export const useScheduleContentItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scheduleContentItem>>,
+        TError,
+        {contentItemId: string;data: BodyType<ScheduleContentItemInput>},
+        TContext
+      > => {
+      return useMutation(getScheduleContentItemMutationOptions(options));
+    }
+
+export const getUnscheduleContentItemUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}/schedule`
+}
+
+/**
+ * @summary Return a scheduled content item to approved status
+ */
+export const unscheduleContentItem = async (contentItemId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnscheduleContentItemUrl(contentItemId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnscheduleContentItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext> => {
+
+const mutationKey = ['unscheduleContentItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unscheduleContentItem>>, {contentItemId: string}> = (props) => {
+          const {contentItemId} = props ?? {};
+
+          return  unscheduleContentItem(contentItemId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnscheduleContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof unscheduleContentItem>>>
+
+    export type UnscheduleContentItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Return a scheduled content item to approved status
+ */
+export const useUnscheduleContentItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof unscheduleContentItem>>,
+        TError,
+        {contentItemId: string},
+        TContext
+      > => {
+      return useMutation(getUnscheduleContentItemMutationOptions(options));
+    }
+
+export const getRecordContentPublicationUrl = (contentItemId: string,) => {
+
+
+
+
+  return `/api/studio/content-items/${contentItemId}/publication`
+}
+
+/**
+ * @summary Record the real Instagram publication result
+ */
+export const recordContentPublication = async (contentItemId: string,
+    recordContentPublicationInput: RecordContentPublicationInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRecordContentPublicationUrl(contentItemId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(recordContentPublicationInput)
+  }
+);}
+
+
+
+
+
+export const getRecordContentPublicationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext> => {
+
+const mutationKey = ['recordContentPublication'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordContentPublication>>, {contentItemId: string;data: BodyType<RecordContentPublicationInput>}> = (props) => {
+          const {contentItemId,data} = props ?? {};
+
+          return  recordContentPublication(contentItemId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordContentPublicationMutationResult = NonNullable<Awaited<ReturnType<typeof recordContentPublication>>>
+    export type RecordContentPublicationMutationBody = BodyType<RecordContentPublicationInput>
+    export type RecordContentPublicationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Record the real Instagram publication result
+ */
+export const useRecordContentPublication = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordContentPublication>>,
+        TError,
+        {contentItemId: string;data: BodyType<RecordContentPublicationInput>},
+        TContext
+      > => {
+      return useMutation(getRecordContentPublicationMutationOptions(options));
     }
 

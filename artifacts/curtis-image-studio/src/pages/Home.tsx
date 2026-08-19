@@ -22,6 +22,7 @@ import { LockKeyhole, ServerCrash, Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BrandMark } from "@/components/brand-mark";
+import { StudioNavigation } from "@/components/studio-navigation";
 import {
   Dialog,
   DialogContent,
@@ -152,7 +153,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {capabilities && (
             <div className="hidden md:flex items-center gap-2 mr-4">
               {capabilities.provider.includes("NVIDIA") && (
@@ -176,7 +177,9 @@ export default function Home() {
             </div>
           )}
           
-          <div className="flex items-center gap-2 text-xs font-medium border border-border px-3 py-1.5 rounded-full bg-card">
+          <StudioNavigation active="studio" />
+
+          <div className="hidden sm:flex items-center gap-2 text-xs font-medium border border-border px-3 py-1.5 rounded-full bg-card">
             {isHealthy ? (
               <>
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

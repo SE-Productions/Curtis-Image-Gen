@@ -5,6 +5,10 @@ import { Toaster } from '@/components/ui/sonner'; // Use Sonner instead of Toast
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import Home from '@/pages/Home';
+import SettingsPage from '@/pages/Settings';
+import Planner from '@/pages/Planner';
+import Library from '@/pages/Library';
+import Calendar from '@/pages/Calendar';
 import {
   Route,
   Switch,
@@ -19,6 +23,10 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/planner" component={Planner} />
+        <Route path="/library" component={Library} />
+        <Route path="/calendar" component={Calendar} />
+        <Route path="/settings" component={SettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

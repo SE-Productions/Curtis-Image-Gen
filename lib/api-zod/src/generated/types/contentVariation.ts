@@ -6,9 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface StudioCapabilities {
-  imageGeneration: boolean;
-  referenceGuidance: boolean;
+export interface ContentVariation {
+  id: string;
+  sceneId: string;
+  ordinal: number;
+  imageDataUrl: string;
   provider: string;
-  grokConfigured: boolean;
+  createdAt: Date;
 }

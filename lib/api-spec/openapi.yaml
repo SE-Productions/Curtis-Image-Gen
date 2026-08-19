@@ -310,7 +310,7 @@ paths:
     get:
       operationId: getInstagramPublishingStatus
       tags: [studio]
-      summary: Get Instagram publishing availability
+      summary: Get the authoritative Composio and Instagram connection status
       responses:
         "200":
           description: Instagram publishing status
@@ -318,6 +318,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InstagramPublishingStatus"
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Composio connection status could not be retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /studio/assets/{assetId}:
     get:
       operationId: getStudioAsset
@@ -355,8 +367,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InstagramConnection"
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "503":
           description: Instagram publishing is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: disconnectInstagramAccount
+      tags: [studio]
+      summary: Disconnect the studio owner's Instagram account
+      responses:
+        "204":
+          description: Instagram account disconnected
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Instagram publishing is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Instagram account could not be disconnected
           content:
             application/json:
               schema:
@@ -397,7 +440,224 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /studio/creator-dna:
+    get:
+      operationId: getCreatorDna
+      tags: [studio]
+      summary: Get the creator context used for planning
+      responses:
+        "200":
+          description: Creator DNA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorDna"
+    put:
+      operationId: updateCreatorDna
+      tags: [studio]
+      summary: Save the creator context used for planning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatorDnaInput"
+      responses:
+        "200":
+          description: Saved Creator DNA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatorDna"
+        "400":
+          description: Invalid Creator DNA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/content-plan:
+    get:
+      operationId: getContentPlan
+      tags: [studio]
+      summary: Get a persisted weekly content plan
+      parameters:
+        - name: weekStart
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+      responses:
+        "200":
+          description: Weekly plan or null when it has not been created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentPlanResult"
+  /studio/content-plan/generate:
+    post:
+      operationId: generateContentPlan
+      tags: [studio]
+      summary: Generate and persist an editable seven-day content plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateContentPlanInput"
+      responses:
+        "200":
+          description: Generated weekly content plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentPlan"
+        "400":
+          description: Creator DNA or plan request is incomplete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Planning provider failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/content-items/{contentItemId}:
+    patch:
+      operationId: updateContentItem
+      tags: [studio]
+      summary: Edit a planned content item
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentItemUpdate"
+      responses:
+        "200":
+          description: Updated content item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+        "404":
+          description: Content item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteContentItem
+      tags: [studio]
+      summary: Delete a planned content item
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      responses:
+        "204":
+          description: Content item deleted
+  /studio/content-items/{contentItemId}/variations:
+    post:
+      operationId: addContentVariation
+      tags: [studio]
+      summary: Link a real generated scene to a planned content item
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddContentVariationInput"
+      responses:
+        "204":
+          description: Generated scene linked to the content item
+        "404":
+          description: Content item or scene not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/content-items/{contentItemId}/approve:
+    post:
+      operationId: approveContentItem
+      tags: [studio]
+      summary: Approve one generated variation for publishing
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveContentItemInput"
+      responses:
+        "204":
+          description: Content item approved
+        "409":
+          description: Scene is not a variation of this content item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/content-items/{contentItemId}/schedule:
+    post:
+      operationId: scheduleContentItem
+      tags: [studio]
+      summary: Schedule an approved content item
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScheduleContentItemInput"
+      responses:
+        "204":
+          description: Content item scheduled
+        "409":
+          description: Schedule slot is invalid or already occupied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: unscheduleContentItem
+      tags: [studio]
+      summary: Return a scheduled content item to approved status
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      responses:
+        "204":
+          description: Content item unscheduled
+  /studio/content-items/{contentItemId}/publication:
+    post:
+      operationId: recordContentPublication
+      tags: [studio]
+      summary: Record the real Instagram publication result
+      parameters:
+        - $ref: "#/components/parameters/ContentItemId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordContentPublicationInput"
+      responses:
+        "204":
+          description: Publication result recorded
 components:
+  parameters:
+    ContentItemId:
+      name: contentItemId
+      in: path
+      required: true
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
@@ -408,7 +668,7 @@ components:
         - status
     StudioCapabilities:
       type: object
-      required: [imageGeneration, referenceGuidance, provider]
+      required: [imageGeneration, referenceGuidance, provider, grokConfigured]
       properties:
         imageGeneration:
           type: boolean
@@ -416,6 +676,8 @@ components:
           type: boolean
         provider:
           type: string
+        grokConfigured:
+          type: boolean
     StudioImageInput:
       type: object
       required: [prompt, aspectRatio]
@@ -434,6 +696,10 @@ components:
           type: string
           enum: ["high", "balanced"]
           default: high
+        provider:
+          type: string
+          enum: ["openai", "grok"]
+          default: openai
     StudioImage:
       type: object
       required: [imageDataUrl, provider, referenceUsed, fidelity]
@@ -570,12 +836,37 @@ components:
           type: ["string", "null"]
     InstagramPublishingStatus:
       type: object
-      required: [available, accountType]
+      required:
+        [
+          available,
+          configured,
+          connected,
+          connectionStatus,
+          accountLabel,
+          accountType,
+          updatedAt,
+        ]
       properties:
         available:
           type: boolean
+          description: Whether Instagram publishing is currently ready to use
+        configured:
+          type: boolean
+          description: Whether the server has a protected Composio configuration
+        connected:
+          type: boolean
+          description: Whether Composio reports an active Instagram connected account
+        connectionStatus:
+          type: string
+          enum: [not_configured, disconnected, connecting, connected, attention]
+        accountLabel:
+          type: ["string", "null"]
+          description: A safe alias for the connected account when Composio provides one
         accountType:
           type: string
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
     InstagramConnection:
       type: object
       required: [authorizationUrl]
@@ -605,6 +896,230 @@ components:
           type: string
         status:
           type: string
+    CreatorDnaInput:
+      type: object
+      required: [voice, audience, visualStyle, themes, offers, goals]
+      properties:
+        voice:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        audience:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        visualStyle:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        themes:
+          type: array
+          minItems: 1
+          maxItems: 12
+          items:
+            type: string
+            minLength: 1
+            maxLength: 120
+        offers:
+          type: string
+          maxLength: 2000
+        goals:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    CreatorDna:
+      type: object
+      required: [voice, audience, visualStyle, themes, offers, goals, updatedAt]
+      properties:
+        voice:
+          type: string
+        audience:
+          type: string
+        visualStyle:
+          type: string
+        themes:
+          type: array
+          items:
+            type: string
+        offers:
+          type: string
+        goals:
+          type: string
+        updatedAt:
+          type: ["string", "null"]
+          format: date-time
+    GenerateContentPlanInput:
+      type: object
+      required: [weekStart, brief]
+      properties:
+        weekStart:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        brief:
+          type: string
+          minLength: 1
+          maxLength: 3000
+    ContentVariation:
+      type: object
+      required: [id, sceneId, ordinal, imageDataUrl, provider, createdAt]
+      properties:
+        id:
+          type: string
+        sceneId:
+          type: string
+        ordinal:
+          type: number
+        imageDataUrl:
+          type: string
+        provider:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ContentItem:
+      type: object
+      required:
+        [
+          id,
+          planDate,
+          title,
+          concept,
+          prompt,
+          caption,
+          format,
+          status,
+          provider,
+          selectedSceneId,
+          scheduledFor,
+          publishedAt,
+          instagramPostId,
+          failureReason,
+          variations,
+        ]
+      properties:
+        id:
+          type: string
+        planDate:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        title:
+          type: string
+        concept:
+          type: string
+        prompt:
+          type: string
+        caption:
+          type: string
+        format:
+          type: string
+          enum: [feed, story, reel]
+        status:
+          type: string
+          enum: [idea, generated, approved, scheduled, published, failed]
+        provider:
+          type: string
+          enum: [openai, grok]
+        selectedSceneId:
+          type: ["string", "null"]
+        scheduledFor:
+          type: ["string", "null"]
+          format: date-time
+        publishedAt:
+          type: ["string", "null"]
+          format: date-time
+        instagramPostId:
+          type: ["string", "null"]
+        failureReason:
+          type: ["string", "null"]
+        variations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentVariation"
+    ContentPlan:
+      type: object
+      required: [id, weekStart, brief, createdAt, updatedAt, items]
+      properties:
+        id:
+          type: string
+        weekStart:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+        brief:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentItem"
+    ContentPlanResult:
+      type: object
+      required: [plan]
+      properties:
+        plan:
+          anyOf:
+            - $ref: "#/components/schemas/ContentPlan"
+            - type: "null"
+    ContentItemUpdate:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        concept:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 6000
+        caption:
+          type: string
+          maxLength: 2200
+        format:
+          type: string
+          enum: [feed, story, reel]
+        provider:
+          type: string
+          enum: [openai, grok]
+    AddContentVariationInput:
+      type: object
+      required: [sceneId]
+      properties:
+        sceneId:
+          type: string
+    ApproveContentItemInput:
+      type: object
+      required: [sceneId]
+      properties:
+        sceneId:
+          type: string
+    ScheduleContentItemInput:
+      type: object
+      required: [scheduledFor]
+      properties:
+        scheduledFor:
+          type: string
+          format: date-time
+    RecordContentPublicationInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [published, failed]
+        postId:
+          type: string
+        failureReason:
+          type: string
+          maxLength: 1000
     ErrorResponse:
       type: object
       required: [error]

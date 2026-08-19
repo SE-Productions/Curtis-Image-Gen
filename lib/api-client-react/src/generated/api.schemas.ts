@@ -13,6 +13,7 @@ export interface StudioCapabilities {
   imageGeneration: boolean;
   referenceGuidance: boolean;
   provider: string;
+  grokConfigured: boolean;
 }
 
 export type StudioImageInputAspectRatio = typeof StudioImageInputAspectRatio[keyof typeof StudioImageInputAspectRatio];
@@ -32,6 +33,14 @@ export const StudioImageInputFidelity = {
   balanced: 'balanced',
 } as const;
 
+export type StudioImageInputProvider = typeof StudioImageInputProvider[keyof typeof StudioImageInputProvider];
+
+
+export const StudioImageInputProvider = {
+  openai: 'openai',
+  grok: 'grok',
+} as const;
+
 export interface StudioImageInput {
   /**
      * @minLength 1
@@ -45,6 +54,7 @@ export interface StudioImageInput {
      */
   referenceImage?: string | null;
   fidelity?: StudioImageInputFidelity;
+  provider?: StudioImageInputProvider;
 }
 
 export type StudioImageFidelity = typeof StudioImageFidelity[keyof typeof StudioImageFidelity];
@@ -222,9 +232,33 @@ export interface StudioVideoTask {
   error?: string | null;
 }
 
+export type InstagramPublishingStatusConnectionStatus = typeof InstagramPublishingStatusConnectionStatus[keyof typeof InstagramPublishingStatusConnectionStatus];
+
+
+export const InstagramPublishingStatusConnectionStatus = {
+  not_configured: 'not_configured',
+  disconnected: 'disconnected',
+  connecting: 'connecting',
+  connected: 'connected',
+  attention: 'attention',
+} as const;
+
 export interface InstagramPublishingStatus {
+  /** Whether Instagram publishing is currently ready to use */
   available: boolean;
+  /** Whether the server has a protected Composio configuration */
+  configured: boolean;
+  /** Whether Composio reports an active Instagram connected account */
+  connected: boolean;
+  connectionStatus: InstagramPublishingStatusConnectionStatus;
+  /**
+     * A safe alias for the connected account when Composio provides one
+     * @nullable
+     */
+  accountLabel: string | null;
   accountType: string;
+  /** @nullable */
+  updatedAt: string | null;
 }
 
 export interface InstagramConnection {
@@ -249,7 +283,209 @@ export interface InstagramPublication {
   status: string;
 }
 
+export interface CreatorDnaInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  voice: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  audience: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  visualStyle: string;
+  /**
+     * @minItems 1
+     * @maxItems 12
+     * @items.minLength 1
+     * @items.maxLength 120
+     */
+  themes: string[];
+  /** @maxLength 2000 */
+  offers: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  goals: string;
+}
+
+export interface CreatorDna {
+  voice: string;
+  audience: string;
+  visualStyle: string;
+  themes: string[];
+  offers: string;
+  goals: string;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface GenerateContentPlanInput {
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  weekStart: string;
+  /**
+     * @minLength 1
+     * @maxLength 3000
+     */
+  brief: string;
+}
+
+export interface ContentVariation {
+  id: string;
+  sceneId: string;
+  ordinal: number;
+  imageDataUrl: string;
+  provider: string;
+  createdAt: string;
+}
+
+export type ContentItemFormat = typeof ContentItemFormat[keyof typeof ContentItemFormat];
+
+
+export const ContentItemFormat = {
+  feed: 'feed',
+  story: 'story',
+  reel: 'reel',
+} as const;
+
+export type ContentItemStatus = typeof ContentItemStatus[keyof typeof ContentItemStatus];
+
+
+export const ContentItemStatus = {
+  idea: 'idea',
+  generated: 'generated',
+  approved: 'approved',
+  scheduled: 'scheduled',
+  published: 'published',
+  failed: 'failed',
+} as const;
+
+export type ContentItemProvider = typeof ContentItemProvider[keyof typeof ContentItemProvider];
+
+
+export const ContentItemProvider = {
+  openai: 'openai',
+  grok: 'grok',
+} as const;
+
+export interface ContentItem {
+  id: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  planDate: string;
+  title: string;
+  concept: string;
+  prompt: string;
+  caption: string;
+  format: ContentItemFormat;
+  status: ContentItemStatus;
+  provider: ContentItemProvider;
+  /** @nullable */
+  selectedSceneId: string | null;
+  /** @nullable */
+  scheduledFor: string | null;
+  /** @nullable */
+  publishedAt: string | null;
+  /** @nullable */
+  instagramPostId: string | null;
+  /** @nullable */
+  failureReason: string | null;
+  variations: ContentVariation[];
+}
+
+export interface ContentPlan {
+  id: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  weekStart: string;
+  brief: string;
+  createdAt: string;
+  updatedAt: string;
+  items: ContentItem[];
+}
+
+export interface ContentPlanResult {
+  plan: ContentPlan | null;
+}
+
+export type ContentItemUpdateFormat = typeof ContentItemUpdateFormat[keyof typeof ContentItemUpdateFormat];
+
+
+export const ContentItemUpdateFormat = {
+  feed: 'feed',
+  story: 'story',
+  reel: 'reel',
+} as const;
+
+export type ContentItemUpdateProvider = typeof ContentItemUpdateProvider[keyof typeof ContentItemUpdateProvider];
+
+
+export const ContentItemUpdateProvider = {
+  openai: 'openai',
+  grok: 'grok',
+} as const;
+
+export interface ContentItemUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  title?: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  concept?: string;
+  /**
+     * @minLength 1
+     * @maxLength 6000
+     */
+  prompt?: string;
+  /** @maxLength 2200 */
+  caption?: string;
+  format?: ContentItemUpdateFormat;
+  provider?: ContentItemUpdateProvider;
+}
+
+export interface AddContentVariationInput {
+  sceneId: string;
+}
+
+export interface ApproveContentItemInput {
+  sceneId: string;
+}
+
+export interface ScheduleContentItemInput {
+  scheduledFor: string;
+}
+
+export type RecordContentPublicationInputStatus = typeof RecordContentPublicationInputStatus[keyof typeof RecordContentPublicationInputStatus];
+
+
+export const RecordContentPublicationInputStatus = {
+  published: 'published',
+  failed: 'failed',
+} as const;
+
+export interface RecordContentPublicationInput {
+  status: RecordContentPublicationInputStatus;
+  postId?: string;
+  /** @maxLength 1000 */
+  failureReason?: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }
+
+export type GetContentPlanParams = {
+/**
+ * @pattern ^\d{4}-\d{2}-\d{2}$
+ */
+weekStart: string;
+};
 

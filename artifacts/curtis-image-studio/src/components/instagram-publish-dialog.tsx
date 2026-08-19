@@ -1,14 +1,13 @@
 import { useState, useEffect } from "react";
-import { Loader2, Instagram, ExternalLink, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
+import { Loader2, Instagram, Settings, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { 
   useGetInstagramPublishingStatus, 
   getGetInstagramPublishingStatusQueryKey,
-  useBeginInstagramConnection,
   usePublishStudioImageToInstagram,
   useGenerateStudioPostCopy,
   StudioPostCopyInputFormat
 } from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -31,56 +30,52 @@ interface InstagramPublishDialogProps {
     visualDescription?: string;
     prompt: string;
     aspectRatio: string;
+    initialCaption?: string;
   };
   trigger?: React.ReactNode;
+  onPublished?: (postId: string) => void;
+  onPublishFailed?: (message: string) => void;
 }
 
-export function InstagramPublishDialog({ imageDataUrl, context, trigger }: InstagramPublishDialogProps) {
-  const queryClient = useQueryClient();
+export function InstagramPublishDialog({
+  imageDataUrl,
+  context,
+  trigger,
+  onPublished,
+  onPublishFailed,
+}: InstagramPublishDialogProps) {
   const [open, setOpen] = useState(false);
   const [caption, setCaption] = useState("");
-  const [connectionInstruction, setConnectionInstruction] = useState(false);
   
   // Publication state
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishStatus, setPublishStatus] = useState("");
   const [publishError, setPublishError] = useState<string | null>(null);
   
-  const { data: status, isLoading: isLoadingStatus } = useGetInstagramPublishingStatus({
+  const {
+    data: status,
+    isLoading: isLoadingStatus,
+    isFetching: isFetchingStatus,
+    refetch: refetchStatus,
+  } = useGetInstagramPublishingStatus({
     query: {
       enabled: open,
       queryKey: getGetInstagramPublishingStatusQueryKey()
     }
   });
 
-  const connectMutation = useBeginInstagramConnection();
   const publishMutation = usePublishStudioImageToInstagram();
   const generateCaptionMutation = useGenerateStudioPostCopy();
 
   // Reset state when opened
   useEffect(() => {
     if (open) {
-      setCaption("");
+      setCaption(context?.initialCaption || "");
       setPublishSuccess(false);
       setPublishStatus("");
       setPublishError(null);
-      setConnectionInstruction(false);
     }
-  }, [open]);
-
-  const handleConnect = () => {
-    connectMutation.mutate(undefined, {
-      onSuccess: (data) => {
-        if (data.authorizationUrl) {
-          window.open(data.authorizationUrl, "_blank", "noopener,noreferrer");
-          setConnectionInstruction(true);
-        }
-      },
-      onError: () => {
-        // Error is handled implicitly or could set local state
-      }
-    });
-  };
+  }, [open, context?.initialCaption]);
 
   const handleGenerateCaption = () => {
     if (!context) return;
@@ -120,6 +115,9 @@ export function InstagramPublishDialog({ imageDataUrl, context, trigger }: Insta
       onSuccess: (data) => {
         setPublishSuccess(true);
         setPublishStatus(data.status || "Published");
+        if (onPublished && data.postId) {
+          onPublished(data.postId);
+        }
       },
       onError: (error: any) => {
         const msg = error?.response?.data?.error || error.message || "Failed to publish image.";
@@ -130,6 +128,7 @@ export function InstagramPublishDialog({ imageDataUrl, context, trigger }: Insta
         } else {
           setPublishError(msg);
         }
+        onPublishFailed?.(msg);
       }
     });
   };
@@ -172,58 +171,43 @@ export function InstagramPublishDialog({ imageDataUrl, context, trigger }: Insta
                 Status: {publishStatus}
               </Badge>
             </div>
-          ) : status?.available === false ? (
+          ) : status?.connected !== true ? (
             <div className="flex flex-col gap-4 animate-in fade-in" data-testid="instagram-connection-flow">
               <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
                 <Instagram className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                <h4 className="font-medium text-foreground mb-1">Not Connected</h4>
+                <h4 className="font-medium text-foreground mb-1">
+                  {status?.configured
+                    ? "Instagram is not connected"
+                    : "Instagram setup is incomplete"}
+                </h4>
                 <p className="text-sm text-muted-foreground mb-4">
-                  You need to connect an Instagram account to publish images directly.
+                  {status?.configured
+                    ? "Connect or repair your Instagram account in Settings before publishing."
+                    : "The protected Composio server configuration must be completed before an account can be connected."}
                 </p>
                 <div className="text-xs text-muted-foreground bg-background p-2 rounded border border-border inline-block mb-4">
                   Note: Instagram API requires a Business or Creator account.
                 </div>
-                
-                {connectionInstruction ? (
-                  <div className="bg-primary/5 border border-primary/20 rounded-md p-4 text-left">
-                    <p className="text-sm text-foreground font-medium flex items-center gap-2 mb-2">
-                      <ExternalLink className="w-4 h-4 text-primary" />
-                      Authorization in Progress
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      A new tab has opened for you to authorize with Instagram. Please complete the authorization there, then return to this window.
-                    </p>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => {
-                        queryClient.invalidateQueries({ queryKey: getGetInstagramPublishingStatusQueryKey() });
-                      }}
-                      data-testid="button-instagram-refresh-status"
-                    >
-                      I've completed authorization
-                    </Button>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={handleConnect} 
-                    disabled={connectMutation.isPending}
-                    className="w-full sm:w-auto gap-2"
-                    data-testid="button-instagram-connect"
-                  >
-                    {connectMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Instagram className="w-4 h-4" />
-                    )}
-                    Connect Instagram Account
+
+                <div className="flex flex-col justify-center gap-2 sm:flex-row">
+                  <Button asChild className="gap-2" data-testid="button-instagram-open-settings">
+                    <Link href="/settings">
+                      <Settings className="h-4 w-4" />
+                      Open Settings
+                    </Link>
                   </Button>
-                )}
-                
-                {connectMutation.isError && (
-                  <p className="text-sm text-destructive mt-3">
-                    Failed to start connection. The service might not be configured.
-                  </p>
-                )}
+                  <Button
+                    variant="outline"
+                    onClick={() => refetchStatus()}
+                    disabled={isFetchingStatus}
+                    data-testid="button-instagram-refresh-status"
+                  >
+                    {isFetchingStatus && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Refresh status
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (

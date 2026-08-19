@@ -53,10 +53,101 @@ const hostedAssets = new Map<
 >();
 const videoTaskFormats = new Map<string, "reel" | "story">();
 
+async function listInstagramConnections() {
+  return getComposioClient().connectedAccounts.list({
+    userIds: [composioUserId],
+    toolkitSlugs: ["instagram"],
+    orderBy: "updated_at",
+    limit: 20,
+  });
+}
+
+function instagramConnectionStatus(
+  configured: boolean,
+  accounts: Awaited<ReturnType<typeof listInstagramConnections>>["items"] = [],
+) {
+  if (!configured) {
+    return {
+      available: false,
+      configured: false,
+      connected: false,
+      connectionStatus: "not_configured" as const,
+      accountLabel: null,
+      accountType: "Instagram Business or Creator account",
+      updatedAt: null,
+    };
+  }
+
+  const active = accounts.find(
+    (account) => account.status === "ACTIVE" && !account.isDisabled,
+  );
+  const connecting = accounts.find(
+    (account) =>
+      account.status === "INITIALIZING" || account.status === "INITIATED",
+  );
+  const attention = accounts.find((account) =>
+    ["FAILED", "EXPIRED", "INACTIVE", "REVOKED"].includes(account.status),
+  );
+  const current = active ?? connecting ?? attention;
+
+  return {
+    available: Boolean(active),
+    configured: true,
+    connected: Boolean(active),
+    connectionStatus: active
+      ? ("connected" as const)
+      : connecting
+        ? ("connecting" as const)
+        : attention
+          ? ("attention" as const)
+          : ("disconnected" as const),
+    accountLabel: current?.alias?.trim() || null,
+    accountType: "Instagram Business or Creator account",
+    updatedAt: current?.updatedAt ?? null,
+  };
+}
+
 function imageSizeFor(aspectRatio: "16:9" | "9:16" | "1:1") {
   if (aspectRatio === "9:16") return "1024x1536" as const;
   if (aspectRatio === "16:9") return "1536x1024" as const;
   return "1024x1024" as const;
+}
+
+async function generateGrokImage(
+  prompt: string,
+  aspectRatio: "16:9" | "9:16" | "1:1",
+): Promise<Buffer> {
+  if (!process.env.XAI_API_KEY) {
+    throw new Error("Grok image generation is not configured.");
+  }
+
+  const response = await fetch("https://api.x.ai/v1/images/generations", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.XAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "grok-imagine-image-2.0",
+      prompt,
+      aspect_ratio: aspectRatio,
+      response_format: "b64_json",
+      n: 1,
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Grok image generation failed with status ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as {
+    data?: Array<{ b64_json?: string }>;
+  };
+  const base64 = payload.data?.[0]?.b64_json;
+  if (!base64) {
+    throw new Error("Grok image generation returned no image.");
+  }
+  return Buffer.from(base64, "base64");
 }
 
 async function writeReferenceFile(dataUrl: string): Promise<string> {
@@ -256,6 +347,7 @@ router.get("/studio/capabilities", (_req, res): void => {
       provider: process.env.NVIDIA_API_KEY
         ? "OpenAI image generation + NVIDIA cinematic direction"
         : "OpenAI image generation + cinematic direction",
+      grokConfigured: Boolean(process.env.XAI_API_KEY),
     }),
   );
 });
@@ -381,14 +473,35 @@ router.delete("/studio/scenes/:sceneId", requireStudioSession, async (req, res):
   res.sendStatus(204);
 });
 
-router.get("/studio/instagram/status", (_req, res): void => {
-  res.json(
-    GetInstagramPublishingStatusResponse.parse({
-      available: Boolean(process.env.COMPOSIO_API_KEY),
-      accountType: "Instagram Business or Creator account",
-    }),
-  );
-});
+router.get(
+  "/studio/instagram/status",
+  requireStudioSession,
+  async (req, res): Promise<void> => {
+    const configured = Boolean(process.env.COMPOSIO_API_KEY);
+    if (!configured) {
+      res.json(
+        GetInstagramPublishingStatusResponse.parse(
+          instagramConnectionStatus(false),
+        ),
+      );
+      return;
+    }
+
+    try {
+      const connections = await listInstagramConnections();
+      res.json(
+        GetInstagramPublishingStatusResponse.parse(
+          instagramConnectionStatus(true, connections.items),
+        ),
+      );
+    } catch (error) {
+      req.log.error({ err: error }, "Instagram connection status fetch failed");
+      res.status(502).json({
+        error: "Could not retrieve the Instagram connection status.",
+      });
+    }
+  },
+);
 
 router.get("/studio/assets/:assetId", (req, res): void => {
   pruneHostedAssets();
@@ -402,7 +515,7 @@ router.get("/studio/assets/:assetId", (req, res): void => {
   res.type(asset.contentType).send(asset.bytes);
 });
 
-router.post("/studio/post-copy", async (req, res): Promise<void> => {
+router.post("/studio/post-copy", requireStudioSession, async (req, res): Promise<void> => {
   const parsed = GenerateStudioPostCopyBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Add a scene prompt before generating post copy." });
@@ -458,7 +571,7 @@ router.post("/studio/post-copy", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/studio/videos", async (req, res): Promise<void> => {
+router.post("/studio/videos", requireStudioSession, async (req, res): Promise<void> => {
   const parsed = StartStudioVideoBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({
@@ -524,7 +637,7 @@ router.post("/studio/videos", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/studio/videos/:taskId", async (req, res): Promise<void> => {
+router.get("/studio/videos/:taskId", requireStudioSession, async (req, res): Promise<void> => {
   const parsed = GetStudioVideoParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(404).json({ error: "Video task not found." });
@@ -553,7 +666,10 @@ router.get("/studio/videos/:taskId", async (req, res): Promise<void> => {
   }
 });
 
-router.post("/studio/instagram/connect", async (req, res): Promise<void> => {
+router.post(
+  "/studio/instagram/connect",
+  requireStudioSession,
+  async (req, res): Promise<void> => {
   if (!process.env.COMPOSIO_API_KEY) {
     res.status(503).json({ error: "Instagram publishing is not configured." });
     return;
@@ -578,9 +694,39 @@ router.post("/studio/instagram/connect", async (req, res): Promise<void> => {
     req.log.error({ err: error }, "Instagram connection initiation failed");
     res.status(502).json({ error: "Could not start the Instagram connection." });
   }
-});
+  },
+);
 
-router.post("/studio/instagram/publish", async (req, res): Promise<void> => {
+router.delete(
+  "/studio/instagram/connect",
+  requireStudioSession,
+  async (req, res): Promise<void> => {
+    if (!process.env.COMPOSIO_API_KEY) {
+      res.status(503).json({ error: "Instagram publishing is not configured." });
+      return;
+    }
+
+    try {
+      const { items } = await listInstagramConnections();
+      await Promise.all(
+        items.map((account) =>
+          getComposioClient().connectedAccounts.delete(account.id),
+        ),
+      );
+      res.sendStatus(204);
+    } catch (error) {
+      req.log.error({ err: error }, "Instagram account disconnect failed");
+      res.status(502).json({
+        error: "Could not disconnect the Instagram account. Please try again.",
+      });
+    }
+  },
+);
+
+router.post(
+  "/studio/instagram/publish",
+  requireStudioSession,
+  async (req, res): Promise<void> => {
   const parsed = PublishStudioImageToInstagramBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Add an image and a caption before publishing." });
@@ -641,9 +787,10 @@ router.post("/studio/instagram/publish", async (req, res): Promise<void> => {
         "Instagram could not publish this image. Confirm that the connected account is a Business or Creator account and try again.",
     });
   }
-});
+  },
+);
 
-router.post("/studio/images", async (req, res): Promise<void> => {
+router.post("/studio/images", requireStudioSession, async (req, res): Promise<void> => {
   const parsed = GenerateStudioImageBody.safeParse(req.body);
   if (!parsed.success) {
     req.log.warn({ errors: parsed.error.flatten() }, "Invalid studio image request");
@@ -651,7 +798,24 @@ router.post("/studio/images", async (req, res): Promise<void> => {
     return;
   }
 
-  const { prompt, aspectRatio, referenceImage, fidelity } = parsed.data;
+  const {
+    prompt,
+    aspectRatio,
+    referenceImage,
+    fidelity,
+    provider = "openai",
+  } = parsed.data;
+  if (provider === "grok" && !process.env.XAI_API_KEY) {
+    res.status(503).json({ error: "Grok image generation is not configured." });
+    return;
+  }
+  if (provider === "grok" && referenceImage) {
+    res.status(409).json({
+      error:
+        "Use OpenAI for identity-preserving reference images. Grok is currently available for text-to-image scenes only.",
+    });
+    return;
+  }
   let temporaryReference: string | null = null;
 
   try {
@@ -661,7 +825,9 @@ router.post("/studio/images", async (req, res): Promise<void> => {
       fidelity,
     );
     let imageBuffer: Buffer;
-    if (referenceImage) {
+    if (provider === "grok") {
+      imageBuffer = await generateGrokImage(cinematicPrompt, aspectRatio);
+    } else if (referenceImage) {
       temporaryReference = await writeReferenceFile(referenceImage);
       const fidelityInstruction =
         fidelity === "high"
@@ -685,7 +851,10 @@ router.post("/studio/images", async (req, res): Promise<void> => {
     res.json(
       GenerateStudioImageResponse.parse({
         imageDataUrl: `data:image/png;base64,${imageBuffer.toString("base64")}`,
-        provider: "OpenAI image generation",
+        provider:
+          provider === "grok"
+            ? "Grok Imagine image generation"
+            : "OpenAI image generation",
         referenceUsed: Boolean(referenceImage),
         fidelity,
       }),
