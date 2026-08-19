@@ -2,7 +2,7 @@ services:
   - type: web
     name: curtis-image-studio
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: >-
       corepack enable &&
       pnpm install --frozen-lockfile &&
@@ -33,22 +33,3 @@ services:
         sync: false
       - key: NVIDIA_PROMPT_MODEL
         value: meta/llama-3.1-70b-instruct
-
-  # Keeps the web service awake on the free tier.
-  # On paid plans (Starter+) the web service never sleeps and this
-  # cron job is simply a no-op health-check log entry — harmless either way.
-  - type: cron
-    name: curtis-studio-keepalive
-    runtime: node
-    plan: starter
-    schedule: "*/14 * * * *"
-    buildCommand: "echo 'keepalive'"
-    startCommand: >-
-      node -e "
-        fetch(process.env.TARGET_URL + '/api/healthz')
-          .then(r => console.log('keepalive', r.status))
-          .catch(e => console.error('keepalive failed', e.message));
-      "
-    envVars:
-      - key: TARGET_URL
-        sync: false
