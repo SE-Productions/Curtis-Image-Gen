@@ -1,36 +1,76 @@
-import { useState } from "react";
-import { Sparkles, Download, Check, AlertTriangle, Loader2, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, Download, Check, AlertTriangle, Loader2, Image as ImageIcon, Film, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { StudioImage } from "@workspace/api-client-react";
+import { 
+  StudioImage, 
+  StudioImageInput, 
+  useStartStudioVideo, 
+  useGetStudioVideo, 
+  getGetStudioVideoQueryKey 
+} from "@workspace/api-client-react";
+import { InstagramPublishDialog } from "./instagram-publish-dialog";
+import { toast } from "sonner";
 
 interface ReviewPanelProps {
-  currentImage: StudioImage | null;
+  currentAsset: {
+    image: StudioImage;
+    input: StudioImageInput;
+    title?: string;
+    visualDescription?: string;
+  } | null;
   isGenerating: boolean;
   onGenerate: () => void;
   canGenerate: boolean;
   generationError?: string | null;
-  aspectRatio: string;
 }
 
-import { InstagramPublishDialog } from "./instagram-publish-dialog";
-
 export function ReviewPanel({ 
-  currentImage, 
+  currentAsset, 
   isGenerating, 
   onGenerate, 
   canGenerate, 
   generationError,
-  aspectRatio
 }: ReviewPanelProps) {
   const [downloaded, setDownloaded] = useState(false);
+  const startVideoMutation = useStartStudioVideo();
+  const [videoTask, setVideoTask] = useState<{ taskId: string, format: 'reel'|'story' } | null>(null);
+
+  // Determine the container aspect ratio class
+  const getAspectRatioClass = (ratio?: string) => {
+    switch (ratio) {
+      case "9:16": return "aspect-[9/16]";
+      case "1:1": return "aspect-square";
+      case "16:9":
+      default: return "aspect-video";
+    }
+  };
+
+  useEffect(() => {
+    setVideoTask(null);
+  }, [currentAsset]);
+
+  const { data: videoData } = useGetStudioVideo(
+    videoTask?.taskId || "",
+    {
+      query: {
+        enabled: !!videoTask?.taskId,
+        queryKey: videoTask ? getGetStudioVideoQueryKey(videoTask.taskId) : [],
+        refetchInterval: (query) => {
+          const status = query.state.data?.status;
+          if (status === 'completed' || status === 'failed') return false;
+          return 3000;
+        }
+      }
+    }
+  );
 
   const handleDownload = () => {
-    if (!currentImage?.imageDataUrl) return;
+    if (!currentAsset?.image.imageDataUrl) return;
     
     const a = document.createElement("a");
-    a.href = currentImage.imageDataUrl;
+    a.href = currentAsset.image.imageDataUrl;
     a.download = `curtis-studio-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
@@ -40,14 +80,26 @@ export function ReviewPanel({
     setTimeout(() => setDownloaded(false), 2000);
   };
 
-  // Determine the container aspect ratio class
-  const getAspectRatioClass = () => {
-    switch (aspectRatio) {
-      case "9:16": return "aspect-[9/16]";
-      case "1:1": return "aspect-square";
-      case "16:9":
-      default: return "aspect-video";
-    }
+  const handleStartVideo = (format: 'reel' | 'story') => {
+    if (!currentAsset?.image.imageDataUrl) return;
+    
+    startVideoMutation.mutate({
+      data: {
+        imageDataUrl: currentAsset.image.imageDataUrl,
+        prompt: currentAsset.input.prompt,
+        format,
+        durationSeconds: 5,
+      }
+    }, {
+      onSuccess: (data) => {
+        setVideoTask({ taskId: data.taskId, format });
+        toast.success(`Started rendering ${format}`);
+      },
+      onError: (error: any) => {
+        const msg = error?.response?.data?.error || error.message || "Failed to start video render.";
+        toast.error("Video render failed", { description: msg });
+      }
+    });
   };
 
   return (
@@ -92,29 +144,40 @@ export function ReviewPanel({
               Applying reference guidance, rendering details, and matching your stylistic instructions. This will take a few moments.
             </p>
           </div>
-        ) : currentImage ? (
-          <div className="w-full h-full p-4 flex flex-col animate-in fade-in zoom-in-95 duration-300">
-            <div className={`relative w-full max-h-full flex items-center justify-center rounded-lg overflow-hidden flex-1`}>
+        ) : currentAsset ? (
+          <div className="w-full h-full p-4 flex flex-col animate-in fade-in zoom-in-95 duration-300 overflow-y-auto">
+            <div className={`relative w-full flex items-center justify-center rounded-lg overflow-hidden shrink-0 min-h-[300px]`}>
               <img 
-                src={currentImage.imageDataUrl} 
+                src={currentAsset.image.imageDataUrl} 
                 alt="Generated scene" 
-                className={`max-w-full max-h-full object-contain shadow-md rounded-md ${getAspectRatioClass()}`}
+                className={`max-w-full max-h-[500px] object-contain shadow-md rounded-md ${getAspectRatioClass(currentAsset.input.aspectRatio)}`}
                 data-testid="img-generated-result"
               />
             </div>
-            <div className="flex items-center justify-between mt-4 bg-background border border-border rounded-lg p-3 shadow-sm">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between mt-4 bg-background border border-border rounded-lg p-3 shadow-sm gap-4 shrink-0">
+              <div className="flex flex-wrap items-center gap-3">
                 <Badge variant="secondary" className="font-mono font-normal">
-                  Provider: {currentImage.provider}
+                  Provider: {currentAsset.image.provider}
                 </Badge>
-                {currentImage.referenceUsed && (
+                <Badge variant="outline" className="font-mono font-normal capitalize">
+                  Fidelity: {currentAsset.image.fidelity}
+                </Badge>
+                {currentAsset.image.referenceUsed && (
                   <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 font-normal">
-                    Reference Applied
+                    Ref Applied
                   </Badge>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <InstagramPublishDialog imageDataUrl={currentImage.imageDataUrl} />
+              <div className="flex flex-wrap items-center gap-2">
+                <InstagramPublishDialog 
+                  imageDataUrl={currentAsset.image.imageDataUrl} 
+                  context={{
+                    title: currentAsset.title,
+                    visualDescription: currentAsset.visualDescription,
+                    prompt: currentAsset.input.prompt,
+                    aspectRatio: currentAsset.input.aspectRatio,
+                  }}
+                />
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -129,6 +192,102 @@ export function ReviewPanel({
                   )}
                 </Button>
               </div>
+            </div>
+
+            {/* Video Rendering Section */}
+            <div className="mt-4 pt-4 border-t border-border shrink-0">
+              {videoTask ? (
+                <div className="w-full border border-border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium flex items-center gap-2 text-sm">
+                      <Film className="w-4 h-4" /> 
+                      {videoTask.format === 'reel' ? 'Reel' : 'Story'} Render
+                    </h4>
+                    <Badge variant="outline" className="capitalize text-[10px]">
+                      {videoData?.status || 'starting'}
+                    </Badge>
+                  </div>
+                  
+                  {(!videoData || videoData.status === 'queued' || videoData.status === 'processing') && (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                      <p className="text-sm text-muted-foreground text-center">
+                        {videoData?.status === 'processing' ? 'Rendering motion and preserving faces...' : 'Waiting in queue...'}
+                      </p>
+                    </div>
+                  )}
+
+                  {videoData?.status === 'failed' && (
+                    <div className="flex flex-col items-center justify-center py-6 text-destructive">
+                      <AlertTriangle className="w-8 h-8 mb-2" />
+                      <p className="text-sm">Video rendering failed.</p>
+                      {videoData.error && <p className="text-xs mt-1 opacity-80">{videoData.error}</p>}
+                      <Button variant="outline" size="sm" className="mt-4" onClick={() => setVideoTask(null)}>
+                        Clear
+                      </Button>
+                    </div>
+                  )}
+
+                  {videoData?.status === 'completed' && videoData.videoUrl && (
+                    <div className="flex flex-col gap-4">
+                      <div className="relative aspect-[9/16] w-[200px] sm:w-[240px] mx-auto bg-black rounded-md overflow-hidden shadow-md">
+                        <video 
+                          src={videoData.videoUrl} 
+                          controls 
+                          autoPlay 
+                          loop 
+                          muted 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <div className="flex justify-center gap-3 mt-2">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const a = document.createElement("a");
+                          a.href = videoData.videoUrl!;
+                          a.download = `curtis-${videoTask.format}-${Date.now()}.mp4`;
+                          a.click();
+                        }}>
+                          <Download className="w-4 h-4 mr-2" /> Download MP4
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setVideoTask(null)}>
+                          Close
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full flex gap-3 justify-start">
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => handleStartVideo('reel')} 
+                    className="gap-2 text-xs"
+                    disabled={startVideoMutation.isPending}
+                  >
+                    {startVideoMutation.isPending && startVideoMutation.variables?.data.format === 'reel' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Film className="w-3 h-3" />
+                    )}
+                    Generate Reel
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    onClick={() => handleStartVideo('story')} 
+                    className="gap-2 text-xs"
+                    disabled={startVideoMutation.isPending}
+                  >
+                    {startVideoMutation.isPending && startVideoMutation.variables?.data.format === 'story' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Smartphone className="w-3 h-3" />
+                    )}
+                    Generate Story
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ) : generationError ? (

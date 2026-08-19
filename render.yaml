@@ -1,0 +1,17 @@
+services:
+  - type: web
+    runtime: node
+    name: curtis-image-studio
+    plan: starter
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && PORT=5173 BASE_PATH=/ pnpm --filter @workspace/curtis-image-studio run build && pnpm --filter @workspace/api-server run build
+    startCommand: SERVE_STUDIO_STATIC=true pnpm --filter @workspace/api-server run start
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: AI_INTEGRATIONS_OPENAI_API_KEY
+        sync: false
+      - key: AI_INTEGRATIONS_OPENAI_BASE_URL
+        sync: false
+      - key: A2E_API_KEY
+        sync: false
+      - key: COMPOSIO_API_KEY
+        sync: false

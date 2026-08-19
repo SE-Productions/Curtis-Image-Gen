@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, Clock, ImageIcon, Instagram } from "lucide-react";
+import { Download, Trash2, Clock, ImageIcon, Instagram, Eye } from "lucide-react";
 import { HistoryItem } from "@/hooks/use-studio-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,10 @@ import { InstagramPublishDialog } from "./instagram-publish-dialog";
 interface HistoryGalleryProps {
   items: HistoryItem[];
   onDelete: (id: string) => void;
+  onSelect: (item: HistoryItem) => void;
 }
 
-export function HistoryGallery({ items, onDelete }: HistoryGalleryProps) {
+export function HistoryGallery({ items, onDelete, onSelect }: HistoryGalleryProps) {
   if (items.length === 0) {
     return (
       <div className="py-12 flex flex-col items-center justify-center text-center border-t border-border mt-8" data-testid="history-empty">
@@ -57,8 +58,26 @@ export function HistoryGallery({ items, onDelete }: HistoryGalleryProps) {
                 data-testid={`history-img-${item.id}`}
               />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-full shadow-md"
+                      onClick={() => onSelect(item)}
+                      data-testid={`button-open-history-${item.id}`}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Open in Studio</TooltipContent>
+                </Tooltip>
                 <InstagramPublishDialog 
                   imageDataUrl={item.output.imageDataUrl}
+                  context={{
+                    prompt: item.input.prompt,
+                    aspectRatio: item.input.aspectRatio,
+                  }}
                   trigger={
                     <Tooltip>
                       <TooltipTrigger asChild>

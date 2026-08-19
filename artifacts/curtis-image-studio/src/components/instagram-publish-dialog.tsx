@@ -1,12 +1,15 @@
-import { useState, useEffect, useRef } from "react";
-import { Loader2, Instagram, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Instagram, ExternalLink, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { 
   useGetInstagramPublishingStatus, 
   getGetInstagramPublishingStatusQueryKey,
   useBeginInstagramConnection,
-  usePublishStudioImageToInstagram
+  usePublishStudioImageToInstagram,
+  useGenerateStudioPostCopy,
+  StudioPostCopyInputFormat
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -23,10 +26,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface InstagramPublishDialogProps {
   imageDataUrl: string;
+  context?: {
+    title?: string;
+    visualDescription?: string;
+    prompt: string;
+    aspectRatio: string;
+  };
   trigger?: React.ReactNode;
 }
 
-export function InstagramPublishDialog({ imageDataUrl, trigger }: InstagramPublishDialogProps) {
+export function InstagramPublishDialog({ imageDataUrl, context, trigger }: InstagramPublishDialogProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [caption, setCaption] = useState("");
@@ -46,6 +55,7 @@ export function InstagramPublishDialog({ imageDataUrl, trigger }: InstagramPubli
 
   const connectMutation = useBeginInstagramConnection();
   const publishMutation = usePublishStudioImageToInstagram();
+  const generateCaptionMutation = useGenerateStudioPostCopy();
 
   // Reset state when opened
   useEffect(() => {
@@ -68,6 +78,31 @@ export function InstagramPublishDialog({ imageDataUrl, trigger }: InstagramPubli
       },
       onError: () => {
         // Error is handled implicitly or could set local state
+      }
+    });
+  };
+
+  const handleGenerateCaption = () => {
+    if (!context) return;
+    
+    let format: StudioPostCopyInputFormat = 'feed';
+    if (context.aspectRatio === '9:16') format = 'story'; // defaults to story/reel for vertical
+    
+    generateCaptionMutation.mutate({
+      data: {
+        title: context.title || undefined,
+        visualDescription: context.visualDescription || undefined,
+        prompt: context.prompt,
+        format,
+      }
+    }, {
+      onSuccess: (data) => {
+        setCaption(data.caption);
+        toast.success("Caption generated!");
+      },
+      onError: (error: any) => {
+        const msg = error?.response?.data?.error || "Failed to generate caption.";
+        toast.error("Caption generation failed", { description: msg });
       }
     });
   };
@@ -220,9 +255,29 @@ export function InstagramPublishDialog({ imageDataUrl, trigger }: InstagramPubli
                 </div>
                 
                 <div className="sm:col-span-3 flex flex-col">
-                  <label htmlFor="caption" className="text-sm font-medium mb-1">
-                    Caption (Optional)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="caption" className="text-sm font-medium">
+                      Caption (Optional)
+                    </label>
+                    {context && (
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={handleGenerateCaption}
+                        disabled={generateCaptionMutation.isPending}
+                        data-testid="button-generate-caption"
+                      >
+                        {generateCaptionMutation.isPending ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3 h-3" />
+                        )}
+                        {caption ? "Regenerate AI" : "Generate AI"}
+                      </Button>
+                    )}
+                  </div>
                   <Textarea 
                     id="caption"
                     placeholder="Write a caption for your post..."

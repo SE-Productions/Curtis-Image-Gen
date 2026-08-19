@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useStudioStore } from "@/hooks/use-studio-store";
+import { useStudioStore, HistoryItem } from "@/hooks/use-studio-store";
 import { SetupPanel } from "@/components/setup-panel";
 import { ReviewPanel } from "@/components/review-panel";
 import { HistoryGallery } from "@/components/history-gallery";
@@ -8,11 +8,12 @@ import {
   useGetStudioCapabilities, 
   useHealthCheck, 
   StudioImage,
+  StudioImageInput,
   getHealthCheckQueryKey,
   getGetStudioCapabilitiesQueryKey
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { Camera, Activity, ServerCrash, HelpCircle } from "lucide-react";
+import { Camera, ServerCrash } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -27,7 +28,13 @@ export default function Home() {
     deleteHistoryItem
   } = useStudioStore();
 
-  const [currentImage, setCurrentImage] = useState<StudioImage | null>(null);
+  const [currentAsset, setCurrentAsset] = useState<{
+    image: StudioImage;
+    input: StudioImageInput;
+    title?: string;
+    visualDescription?: string;
+  } | null>(null);
+  
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   const { data: health, isError: healthError } = useHealthCheck({
@@ -47,15 +54,21 @@ export default function Home() {
     }
 
     setGenerationError(null);
-    const input = {
+    const input: StudioImageInput = {
       prompt: script.prompt.trim(),
       aspectRatio: script.aspectRatio,
       referenceImage: referenceImage || undefined,
+      fidelity: script.fidelity,
     };
 
     generateMutation.mutate({ data: input }, {
       onSuccess: (data) => {
-        setCurrentImage(data);
+        setCurrentAsset({
+          image: data,
+          input,
+          title: script.title,
+          visualDescription: script.visualDescription
+        });
         addHistoryItem(input, data);
         toast.success("Scene generated successfully!");
       },
@@ -65,6 +78,14 @@ export default function Home() {
         toast.error("Generation failed", { description: msg });
       }
     });
+  };
+
+  const handleSelectHistoryItem = (item: HistoryItem) => {
+    setCurrentAsset({
+      image: item.output,
+      input: item.input,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const isHealthy = health?.status === "ok" && !healthError;
@@ -141,18 +162,21 @@ export default function Home() {
           {/* Right Column: Review */}
           <div className="lg:col-span-8 xl:col-span-9 flex flex-col">
             <ReviewPanel 
-              currentImage={currentImage}
+              currentAsset={currentAsset}
               isGenerating={generateMutation.isPending}
               onGenerate={handleGenerate}
               canGenerate={isHealthy && script.prompt.trim().length > 0}
               generationError={generationError}
-              aspectRatio={script.aspectRatio}
             />
           </div>
         </div>
 
         {/* History Area */}
-        <HistoryGallery items={history} onDelete={deleteHistoryItem} />
+        <HistoryGallery 
+          items={history} 
+          onDelete={deleteHistoryItem} 
+          onSelect={handleSelectHistoryItem} 
+        />
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ export type ScriptState = {
   visualDescription: string;
   prompt: string;
   aspectRatio: "16:9" | "9:16" | "1:1";
+  fidelity: "high" | "balanced";
 };
 
 export type HistoryItem = {
@@ -26,13 +27,18 @@ const defaultScript: ScriptState = {
   visualDescription: "",
   prompt: "",
   aspectRatio: "16:9",
+  fidelity: "high",
 };
 
 export function useStudioStore() {
   const [script, setScript] = useState<ScriptState>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.SCRIPT);
-      return stored ? JSON.parse(stored) : defaultScript;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { ...defaultScript, ...parsed };
+      }
+      return defaultScript;
     } catch {
       return defaultScript;
     }

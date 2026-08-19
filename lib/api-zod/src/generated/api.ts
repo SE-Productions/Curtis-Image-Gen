@@ -34,18 +34,88 @@ export const generateStudioImageBodyPromptMax = 6000;
 
 export const generateStudioImageBodyReferenceImageMax = 16000000;
 
-
+export const generateStudioImageBodyFidelityDefault = `high`;
 
 export const GenerateStudioImageBody = zod.object({
   "prompt": zod.string().min(1).max(generateStudioImageBodyPromptMax),
   "aspectRatio": zod.enum(['16:9', '9:16', '1:1']),
-  "referenceImage": zod.string().max(generateStudioImageBodyReferenceImageMax).nullish()
+  "referenceImage": zod.string().max(generateStudioImageBodyReferenceImageMax).nullish(),
+  "fidelity": zod.enum(['high', 'balanced']).default(generateStudioImageBodyFidelityDefault)
 })
 
 export const GenerateStudioImageResponse = zod.object({
   "imageDataUrl": zod.string(),
   "provider": zod.string(),
-  "referenceUsed": zod.boolean()
+  "referenceUsed": zod.boolean(),
+  "fidelity": zod.enum(['high', 'balanced'])
+})
+
+
+/**
+ * @summary Generate an editable Instagram caption for a studio asset
+ */
+export const generateStudioPostCopyBodyTitleMax = 160;
+
+export const generateStudioPostCopyBodyVisualDescriptionMax = 2000;
+
+export const generateStudioPostCopyBodyPromptMax = 6000;
+
+
+
+export const GenerateStudioPostCopyBody = zod.object({
+  "title": zod.string().max(generateStudioPostCopyBodyTitleMax).optional(),
+  "visualDescription": zod.string().max(generateStudioPostCopyBodyVisualDescriptionMax).optional(),
+  "prompt": zod.string().min(1).max(generateStudioPostCopyBodyPromptMax),
+  "format": zod.enum(['feed', 'reel', 'story'])
+})
+
+export const generateStudioPostCopyResponseCaptionMax = 2200;
+
+
+
+export const GenerateStudioPostCopyResponse = zod.object({
+  "caption": zod.string().max(generateStudioPostCopyResponseCaptionMax)
+})
+
+
+/**
+ * @summary Start a face-preserving Reel or Story video render
+ */
+export const startStudioVideoBodyImageDataUrlMax = 16000000;
+
+export const startStudioVideoBodyPromptMax = 6000;
+
+export const startStudioVideoBodyDurationSecondsDefault = 5;
+
+export const StartStudioVideoBody = zod.object({
+  "imageDataUrl": zod.string().max(startStudioVideoBodyImageDataUrlMax),
+  "prompt": zod.string().min(1).max(startStudioVideoBodyPromptMax),
+  "format": zod.enum(['reel', 'story']),
+  "durationSeconds": zod.union([zod.literal(5),zod.literal(10),zod.literal(15),zod.literal(20)]).default(startStudioVideoBodyDurationSecondsDefault)
+})
+
+export const StartStudioVideoResponse = zod.object({
+  "taskId": zod.string(),
+  "status": zod.enum(['queued', 'processing', 'completed', 'failed']),
+  "format": zod.enum(['reel', 'story']),
+  "videoUrl": zod.string().nullish(),
+  "error": zod.string().nullish()
+})
+
+
+/**
+ * @summary Get the current status and result of a studio video render
+ */
+export const GetStudioVideoParams = zod.object({
+  "taskId": zod.coerce.string()
+})
+
+export const GetStudioVideoResponse = zod.object({
+  "taskId": zod.string(),
+  "status": zod.enum(['queued', 'processing', 'completed', 'failed']),
+  "format": zod.enum(['reel', 'story']),
+  "videoUrl": zod.string().nullish(),
+  "error": zod.string().nullish()
 })
 
 

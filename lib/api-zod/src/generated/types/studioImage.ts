@@ -5,9 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { StudioImageFidelity } from './studioImageFidelity';
 
 export interface StudioImage {
   imageDataUrl: string;
   provider: string;
   referenceUsed: boolean;
+  fidelity: StudioImageFidelity;
 }

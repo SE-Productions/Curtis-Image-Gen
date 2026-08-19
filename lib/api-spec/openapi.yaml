@@ -68,6 +68,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /studio/post-copy:
+    post:
+      operationId: generateStudioPostCopy
+      tags: [studio]
+      summary: Generate an editable Instagram caption for a studio asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioPostCopyInput"
+      responses:
+        "200":
+          description: Generated post copy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioPostCopy"
+        "400":
+          description: Invalid post-copy request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Copy provider could not complete the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/videos:
+    post:
+      operationId: startStudioVideo
+      tags: [studio]
+      summary: Start a face-preserving Reel or Story video render
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioVideoInput"
+      responses:
+        "200":
+          description: Video render task created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioVideoTask"
+        "400":
+          description: Invalid video render request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: A public deployment URL is required for video rendering
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Video rendering is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Video provider could not start the render
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/videos/{taskId}:
+    get:
+      operationId: getStudioVideo
+      tags: [studio]
+      summary: Get the current status and result of a studio video render
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current video render task state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioVideoTask"
+        "404":
+          description: Video render task was not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Video provider could not retrieve the render
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /studio/instagram/status:
     get:
       operationId: getInstagramPublishingStatus
@@ -192,9 +294,13 @@ components:
         referenceImage:
           type: ["string", "null"]
           maxLength: 16000000
+        fidelity:
+          type: string
+          enum: ["high", "balanced"]
+          default: high
     StudioImage:
       type: object
-      required: [imageDataUrl, provider, referenceUsed]
+      required: [imageDataUrl, provider, referenceUsed, fidelity]
       properties:
         imageDataUrl:
           type: string
@@ -202,6 +308,67 @@ components:
           type: string
         referenceUsed:
           type: boolean
+        fidelity:
+          type: string
+          enum: ["high", "balanced"]
+    StudioPostCopyInput:
+      type: object
+      required: [prompt, format]
+      properties:
+        title:
+          type: string
+          maxLength: 160
+        visualDescription:
+          type: string
+          maxLength: 2000
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 6000
+        format:
+          type: string
+          enum: ["feed", "reel", "story"]
+    StudioPostCopy:
+      type: object
+      required: [caption]
+      properties:
+        caption:
+          type: string
+          maxLength: 2200
+    StudioVideoInput:
+      type: object
+      required: [imageDataUrl, prompt, format]
+      properties:
+        imageDataUrl:
+          type: string
+          maxLength: 16000000
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 6000
+        format:
+          type: string
+          enum: ["reel", "story"]
+        durationSeconds:
+          type: integer
+          enum: [5, 10, 15, 20]
+          default: 5
+    StudioVideoTask:
+      type: object
+      required: [taskId, status, format]
+      properties:
+        taskId:
+          type: string
+        status:
+          type: string
+          enum: ["queued", "processing", "completed", "failed"]
+        format:
+          type: string
+          enum: ["reel", "story"]
+        videoUrl:
+          type: ["string", "null"]
+        error:
+          type: ["string", "null"]
     InstagramPublishingStatus:
       type: object
       required: [available, accountType]

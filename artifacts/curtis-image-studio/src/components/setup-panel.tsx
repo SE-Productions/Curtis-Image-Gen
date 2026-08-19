@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Upload, X, Image as ImageIcon, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -120,6 +120,22 @@ export function SetupPanel({ script, onScriptChange, referenceImage, onReference
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fidelity">Fidelity</Label>
+            <Select 
+              value={script.fidelity} 
+              onValueChange={(value: any) => onScriptChange({ fidelity: value })}
+            >
+              <SelectTrigger id="fidelity" data-testid="select-fidelity">
+                <SelectValue placeholder="Select fidelity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="balanced">Balanced</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -155,33 +171,41 @@ export function SetupPanel({ script, onScriptChange, referenceImage, onReference
             </div>
           </button>
         ) : (
-          <div className="relative group rounded-xl overflow-hidden border border-border shadow-sm">
-            <img 
-              src={referenceImage} 
-              alt="Reference" 
-              className="w-full h-[240px] object-cover"
-              data-testid="img-reference-preview"
-            />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                onClick={() => fileInputRef.current?.click()}
-                className="shadow-md"
-                data-testid="button-change-reference"
-              >
-                Change
-              </Button>
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={handleRemoveReference}
-                className="shadow-md"
-                data-testid="button-remove-reference"
-              >
-                <X className="w-4 h-4 mr-1" /> Remove
-              </Button>
+          <div className="flex flex-col gap-3">
+            <div className="relative group rounded-xl overflow-hidden border border-border shadow-sm">
+              <img 
+                src={referenceImage} 
+                alt="Reference" 
+                className="w-full h-[240px] object-cover"
+                data-testid="img-reference-preview"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shadow-md"
+                  data-testid="button-change-reference"
+                >
+                  Change
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleRemoveReference}
+                  className="shadow-md"
+                  data-testid="button-remove-reference"
+                >
+                  <X className="w-4 h-4 mr-1" /> Remove
+                </Button>
+              </div>
             </div>
+            {script.fidelity !== "high" && (
+              <div className="text-xs bg-primary/10 text-primary px-3 py-2 rounded-md border border-primary/20 flex gap-2 items-start">
+                <div className="mt-0.5"><Sparkles className="w-3 h-3" /></div>
+                <span>For best face preservation with a reference image, consider setting <strong>Fidelity</strong> to "High" in Generation Details.</span>
+              </div>
+            )}
           </div>
         )}
         <input 

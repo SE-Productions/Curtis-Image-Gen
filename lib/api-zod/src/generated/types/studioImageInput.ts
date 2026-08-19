@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StudioImageInputAspectRatio } from './studioImageInputAspectRatio';
+import type { StudioImageInputFidelity } from './studioImageInputFidelity';
 
 export interface StudioImageInput {
   /**
@@ -19,4 +20,5 @@ export interface StudioImageInput {
      * @nullable
      */
   referenceImage?: string | null;
+  fidelity?: StudioImageInputFidelity;
 }

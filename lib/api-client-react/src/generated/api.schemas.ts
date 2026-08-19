@@ -24,6 +24,14 @@ export const StudioImageInputAspectRatio = {
   '1:1': '1:1',
 } as const;
 
+export type StudioImageInputFidelity = typeof StudioImageInputFidelity[keyof typeof StudioImageInputFidelity];
+
+
+export const StudioImageInputFidelity = {
+  high: 'high',
+  balanced: 'balanced',
+} as const;
+
 export interface StudioImageInput {
   /**
      * @minLength 1
@@ -36,12 +44,107 @@ export interface StudioImageInput {
      * @nullable
      */
   referenceImage?: string | null;
+  fidelity?: StudioImageInputFidelity;
 }
+
+export type StudioImageFidelity = typeof StudioImageFidelity[keyof typeof StudioImageFidelity];
+
+
+export const StudioImageFidelity = {
+  high: 'high',
+  balanced: 'balanced',
+} as const;
 
 export interface StudioImage {
   imageDataUrl: string;
   provider: string;
   referenceUsed: boolean;
+  fidelity: StudioImageFidelity;
+}
+
+export type StudioPostCopyInputFormat = typeof StudioPostCopyInputFormat[keyof typeof StudioPostCopyInputFormat];
+
+
+export const StudioPostCopyInputFormat = {
+  feed: 'feed',
+  reel: 'reel',
+  story: 'story',
+} as const;
+
+export interface StudioPostCopyInput {
+  /** @maxLength 160 */
+  title?: string;
+  /** @maxLength 2000 */
+  visualDescription?: string;
+  /**
+     * @minLength 1
+     * @maxLength 6000
+     */
+  prompt: string;
+  format: StudioPostCopyInputFormat;
+}
+
+export interface StudioPostCopy {
+  /** @maxLength 2200 */
+  caption: string;
+}
+
+export type StudioVideoInputFormat = typeof StudioVideoInputFormat[keyof typeof StudioVideoInputFormat];
+
+
+export const StudioVideoInputFormat = {
+  reel: 'reel',
+  story: 'story',
+} as const;
+
+export type StudioVideoInputDurationSeconds = typeof StudioVideoInputDurationSeconds[keyof typeof StudioVideoInputDurationSeconds];
+
+
+export const StudioVideoInputDurationSeconds = {
+  NUMBER_5: 5,
+  NUMBER_10: 10,
+  NUMBER_15: 15,
+  NUMBER_20: 20,
+} as const;
+
+export interface StudioVideoInput {
+  /** @maxLength 16000000 */
+  imageDataUrl: string;
+  /**
+     * @minLength 1
+     * @maxLength 6000
+     */
+  prompt: string;
+  format: StudioVideoInputFormat;
+  durationSeconds?: StudioVideoInputDurationSeconds;
+}
+
+export type StudioVideoTaskStatus = typeof StudioVideoTaskStatus[keyof typeof StudioVideoTaskStatus];
+
+
+export const StudioVideoTaskStatus = {
+  queued: 'queued',
+  processing: 'processing',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export type StudioVideoTaskFormat = typeof StudioVideoTaskFormat[keyof typeof StudioVideoTaskFormat];
+
+
+export const StudioVideoTaskFormat = {
+  reel: 'reel',
+  story: 'story',
+} as const;
+
+export interface StudioVideoTask {
+  taskId: string;
+  status: StudioVideoTaskStatus;
+  format: StudioVideoTaskFormat;
+  /** @nullable */
+  videoUrl?: string | null;
+  /** @nullable */
+  error?: string | null;
 }
 
 export interface InstagramPublishingStatus {

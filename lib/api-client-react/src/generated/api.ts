@@ -28,7 +28,11 @@ import type {
   InstagramPublishingStatus,
   StudioCapabilities,
   StudioImage,
-  StudioImageInput
+  StudioImageInput,
+  StudioPostCopy,
+  StudioPostCopyInput,
+  StudioVideoInput,
+  StudioVideoTask
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -283,6 +287,225 @@ export const useGenerateStudioImage = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getGenerateStudioImageMutationOptions(options));
     }
+
+export const getGenerateStudioPostCopyUrl = () => {
+
+
+
+
+  return `/api/studio/post-copy`
+}
+
+/**
+ * @summary Generate an editable Instagram caption for a studio asset
+ */
+export const generateStudioPostCopy = async (studioPostCopyInput: StudioPostCopyInput, options?: Parameters<typeof customFetch>[1]): Promise<StudioPostCopy> => {
+
+  return customFetch<StudioPostCopy>(getGenerateStudioPostCopyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(studioPostCopyInput)
+  }
+);}
+
+
+
+
+
+export const getGenerateStudioPostCopyMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateStudioPostCopy>>, TError,{data: BodyType<StudioPostCopyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateStudioPostCopy>>, TError,{data: BodyType<StudioPostCopyInput>}, TContext> => {
+
+const mutationKey = ['generateStudioPostCopy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateStudioPostCopy>>, {data: BodyType<StudioPostCopyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generateStudioPostCopy(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateStudioPostCopyMutationResult = NonNullable<Awaited<ReturnType<typeof generateStudioPostCopy>>>
+    export type GenerateStudioPostCopyMutationBody = BodyType<StudioPostCopyInput>
+    export type GenerateStudioPostCopyMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Generate an editable Instagram caption for a studio asset
+ */
+export const useGenerateStudioPostCopy = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateStudioPostCopy>>, TError,{data: BodyType<StudioPostCopyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateStudioPostCopy>>,
+        TError,
+        {data: BodyType<StudioPostCopyInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateStudioPostCopyMutationOptions(options));
+    }
+
+export const getStartStudioVideoUrl = () => {
+
+
+
+
+  return `/api/studio/videos`
+}
+
+/**
+ * @summary Start a face-preserving Reel or Story video render
+ */
+export const startStudioVideo = async (studioVideoInput: StudioVideoInput, options?: Parameters<typeof customFetch>[1]): Promise<StudioVideoTask> => {
+
+  return customFetch<StudioVideoTask>(getStartStudioVideoUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(studioVideoInput)
+  }
+);}
+
+
+
+
+
+export const getStartStudioVideoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startStudioVideo>>, TError,{data: BodyType<StudioVideoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startStudioVideo>>, TError,{data: BodyType<StudioVideoInput>}, TContext> => {
+
+const mutationKey = ['startStudioVideo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startStudioVideo>>, {data: BodyType<StudioVideoInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startStudioVideo(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartStudioVideoMutationResult = NonNullable<Awaited<ReturnType<typeof startStudioVideo>>>
+    export type StartStudioVideoMutationBody = BodyType<StudioVideoInput>
+    export type StartStudioVideoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a face-preserving Reel or Story video render
+ */
+export const useStartStudioVideo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startStudioVideo>>, TError,{data: BodyType<StudioVideoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startStudioVideo>>,
+        TError,
+        {data: BodyType<StudioVideoInput>},
+        TContext
+      > => {
+      return useMutation(getStartStudioVideoMutationOptions(options));
+    }
+
+export const getGetStudioVideoUrl = (taskId: string,) => {
+
+
+
+
+  return `/api/studio/videos/${taskId}`
+}
+
+/**
+ * @summary Get the current status and result of a studio video render
+ */
+export const getStudioVideo = async (taskId: string, options?: Parameters<typeof customFetch>[1]): Promise<StudioVideoTask> => {
+
+  return customFetch<StudioVideoTask>(getGetStudioVideoUrl(taskId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStudioVideoQueryKey = (taskId: string,) => {
+    return [
+    `/api/studio/videos/${taskId}`
+    ] as const;
+    }
+
+
+export const getGetStudioVideoQueryOptions = <TData = Awaited<ReturnType<typeof getStudioVideo>>, TError = ErrorType<ErrorResponse>>(taskId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStudioVideoQueryKey(taskId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudioVideo>>> = ({ signal }) => getStudioVideo(taskId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: taskId !== null && taskId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStudioVideo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStudioVideoQueryResult = NonNullable<Awaited<ReturnType<typeof getStudioVideo>>>
+export type GetStudioVideoQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get the current status and result of a studio video render
+ */
+
+export function useGetStudioVideo<TData = Awaited<ReturnType<typeof getStudioVideo>>, TError = ErrorType<ErrorResponse>>(
+ taskId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioVideo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStudioVideoQueryOptions(taskId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetInstagramPublishingStatusUrl = () => {
 
