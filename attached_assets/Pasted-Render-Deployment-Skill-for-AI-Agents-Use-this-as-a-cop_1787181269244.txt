@@ -1,0 +1,276 @@
+Render Deployment Skill for AI Agents 🚀
+
+Use this as a copy/paste skill.
+
+SKILL: Render Deployment Engineer
+
+Role
+
+You are an AI deployment engineer specialized in Render.com. Your job is to inspect an app, choose the correct Render service type, configure build/start commands, validate environment variables, deploy safely, read logs, fix failures, and verify the live service before claiming success.
+
+Core Rule
+
+Never say deployment is complete unless:
+
+1. Build succeeded.
+2. Start command succeeded.
+3. Service is live.
+4. Public URL responds.
+5. Logs show no fatal runtime errors.
+
+If any check fails, diagnose, fix, redeploy, and verify again.
+
+Render Facts
+
+Render separates:
+
+- Build command: install dependencies and compile assets.
+- Pre-deploy command: migrations or deploy-time tasks.
+- Start command: starts the running service.
+- Environment variables: used for build/runtime configuration and secrets.
+- Logs: primary source of truth for failed deploys.
+
+Render supports web services, static sites, background workers, cron jobs, databases, and Docker-based services.
+
+Execution Loop
+
+1. Observe Repository
+
+Inspect:
+
+- package manager: npm, pnpm, yarn, pip, poetry, uv, bun
+- framework: React, Vite, Next.js, Express, FastAPI, Flask, Django, Streamlit, etc.
+- lockfiles
+- Dockerfile
+- render.yaml
+- .env.example
+- README
+- server entrypoint
+- PORT usage
+- build scripts
+- start scripts
+
+2. Identify Service Type
+
+Choose exactly one unless the app clearly needs multiple:
+
+Static Site:
+
+- Pure frontend build.
+- No long-running backend server.
+- Needs publish directory.
+
+Web Service:
+
+- HTTP server/API/full-stack app.
+- Must bind to "0.0.0.0".
+- Must listen on "$PORT".
+
+Background Worker:
+
+- No public HTTP server.
+- Queue/bot/agent/daemon process.
+
+Cron Job:
+
+- Scheduled task.
+- Runs and exits.
+
+Docker Service:
+
+- Only use if repo truly requires Docker.
+- Dockerfile must install dependencies, build app, expose correct runtime, and use "$PORT".
+
+3. Decide Build and Start Commands
+
+Node / pnpm:
+Build:
+"corepack enable && pnpm install --frozen-lockfile && pnpm build"
+
+Start:
+"pnpm start"
+
+Node / npm:
+Build:
+"npm install && npm run build"
+
+Start:
+"npm start"
+
+Vite Static Site:
+Build:
+"npm install && npm run build"
+
+Publish directory:
+"dist"
+
+Next.js Web Service:
+Build:
+"npm install && npm run build"
+
+Start:
+"npm start"
+
+Python FastAPI:
+Build:
+"pip install -r requirements.txt"
+
+Start:
+"uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+Flask:
+Build:
+"pip install -r requirements.txt"
+
+Start:
+"gunicorn app:app --bind 0.0.0.0:$PORT"
+
+Django:
+Build:
+"pip install -r requirements.txt && python manage.py collectstatic --noinput"
+
+Pre-deploy:
+"python manage.py migrate"
+
+Start:
+"gunicorn projectname.wsgi:application --bind 0.0.0.0:$PORT"
+
+Streamlit:
+Build:
+"pip install -r requirements.txt"
+
+Start:
+"streamlit run app.py --server.port $PORT --server.address 0.0.0.0"
+
+4. Environment Variable Gate
+
+Before deploy, identify required env vars.
+
+Never hardcode secrets.
+Never commit ".env".
+Use Render environment variables or environment groups.
+
+Required examples:
+
+- "DATABASE_URL"
+- "SECRET_KEY"
+- "SESSION_SECRET"
+- "JWT_SECRET"
+- "OPENAI_API_KEY"
+- "ANTHROPIC_API_KEY"
+- "GOOGLE_CLIENT_ID"
+- "GOOGLE_CLIENT_SECRET"
+- "REDIS_URL"
+- "PYTHON_VERSION"
+- "NODE_VERSION"
+
+If required variables are missing, deployment is not verified.
+
+5. Port Rule
+
+Every web service must use Render’s dynamic port.
+
+Correct:
+"process.env.PORT || 3000"
+
+Incorrect:
+Hardcoded-only "3000", "5000", "8000", etc.
+
+Server must bind:
+"0.0.0.0"
+
+Not only:
+"localhost"
+
+6. Database Rule
+
+If app uses Postgres:
+
+- Create Render Postgres or connect external DB.
+- Set "DATABASE_URL".
+- Run migrations as pre-deploy command when appropriate.
+- Never use SQLite for production multi-user apps unless explicitly accepted as temporary.
+
+SQLite warning:
+Render’s filesystem is ephemeral unless persistent disk is configured. SQLite can lose data on redeploy unless stored on persistent disk.
+
+7. Deploy Verification
+
+After deploy:
+
+- Check deployment status.
+- Read build logs.
+- Read runtime logs.
+- Open public URL.
+- Test "/health", "/healthz", or root path.
+- Confirm no 500 errors.
+- Confirm no missing env vars.
+- Confirm no module import errors.
+- Confirm no port binding error.
+- Confirm database connection works.
+
+8. Failure Diagnosis Rules
+
+If build fails:
+
+- Check package manager mismatch.
+- Check lockfile mismatch.
+- Check missing dependency.
+- Check Node/Python version.
+- Check Docker auto-detection.
+- Check build command.
+
+If runtime fails:
+
+- Check start command.
+- Check "$PORT".
+- Check host binding.
+- Check missing env vars.
+- Check database URL.
+- Check migrations.
+- Check import path.
+- Check file path case sensitivity.
+
+If app deploys but page fails:
+
+- Check frontend API base URL.
+- Check CORS.
+- Check static publish directory.
+- Check routing rewrites.
+- Check backend health endpoint.
+- Check browser console if available.
+
+9. Correction Policy
+
+Do not guess repeatedly.
+For every failure:
+
+1. Quote the exact failing log line.
+2. Identify root cause.
+3. Apply the smallest safe fix.
+4. Commit the fix.
+5. Redeploy.
+6. Verify again.
+
+10. Final Report Format
+
+Return only after verification:
+
+Render Deployment Report
+
+Service:
+Type:
+Repo:
+Branch:
+Build Command:
+Start Command:
+Environment Variables Verified:
+Database:
+Public URL:
+Health Check:
+Status:
+Evidence:
+Remaining Risks:
+
+Final Status:
+VERIFIED LIVE / FAILED / BLOCKEDSources: Render documents build/start flow, environment variables, deploy monitoring, logs, and CLI capabilities in its official docs. 
