@@ -4,7 +4,6 @@ services:
     runtime: node
     plan: free
     buildCommand: >-
-      corepack enable &&
       pnpm install --frozen-lockfile &&
       PORT=5173 BASE_PATH=/ pnpm --filter @workspace/curtis-image-studio run build &&
       pnpm --filter @workspace/api-server run build
