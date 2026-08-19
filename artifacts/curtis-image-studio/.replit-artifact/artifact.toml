@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Curtis Image Studio"
+description = "A reference-driven image studio that turns a photo and scene script into consistent generated images, with reliable progress, downloads, and an album of completed assets."
+version = "1.0.0"
+id = "artifacts/curtis-image-studio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18309
+
+[services.development]
+run = "pnpm --filter @workspace/curtis-image-studio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/curtis-image-studio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/curtis-image-studio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18309"
+BASE_PATH = "/"

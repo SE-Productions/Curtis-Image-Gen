@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: studio
+    description: Curtis Image Studio generation operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /studio/capabilities:
+    get:
+      operationId: getStudioCapabilities
+      tags: [studio]
+      summary: Get available studio generation capabilities
+      responses:
+        "200":
+          description: Studio capabilities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioCapabilities"
+  /studio/images:
+    post:
+      operationId: generateStudioImage
+      tags: [studio]
+      summary: Generate a reference-guided scene image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioImageInput"
+      responses:
+        "200":
+          description: Generated image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioImage"
+        "400":
+          description: Invalid generation request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Image provider could not complete the request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +77,44 @@ components:
           type: string
       required:
         - status
+    StudioCapabilities:
+      type: object
+      required: [imageGeneration, referenceGuidance, provider]
+      properties:
+        imageGeneration:
+          type: boolean
+        referenceGuidance:
+          type: boolean
+        provider:
+          type: string
+    StudioImageInput:
+      type: object
+      required: [prompt, aspectRatio]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 6000
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1"]
+        referenceImage:
+          type: ["string", "null"]
+          maxLength: 16000000
+    StudioImage:
+      type: object
+      required: [imageDataUrl, provider, referenceUsed]
+      properties:
+        imageDataUrl:
+          type: string
+        provider:
+          type: string
+        referenceUsed:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
 

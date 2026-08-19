@@ -1,0 +1,1 @@
+- [Image-generation architecture](image-generation-architecture.md) — keep generation inside the Replit API using managed OpenAI integration; do not restore the retired external proxy.
