@@ -84,10 +84,16 @@ export async function createCinematicScenePrompt(
 
     return generatedPrompt.trim().slice(0, maxPromptLength);
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("NVIDIA prompt service timed out.");
-    }
-    throw error;
+    const reason =
+      error instanceof Error && error.name === "AbortError"
+        ? "timed out"
+        : error instanceof Error
+          ? error.message
+          : "returned an unexpected error";
+    console.warn(
+      `NVIDIA prompt direction unavailable (${reason}); using local cinematic fallback.`,
+    );
+    return fallbackPrompt(prompt, referenceUsed);
   } finally {
     clearTimeout(timeout);
   }

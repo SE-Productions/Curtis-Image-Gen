@@ -33,8 +33,9 @@ The web service listens on port `10000` (Render's default). This is set via the 
 
 Render does not support Cron Jobs on the free plan, so this Blueprint creates no
 keep-alive job. Free web services may spin down after inactivity and wake on the
-next request. Use a paid always-on service if scheduled publishing must run
-reliably without someone opening the app.
+next request. This deployment supports on-demand generation and publishing; it
+does not promise unattended daily scheduling or automatic publishing. Use a paid
+always-on service and a scheduled worker before enabling those workflows.
 
 ## Re-deploying
 
