@@ -13,7 +13,7 @@ import {
   getGetStudioCapabilitiesQueryKey
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { ServerCrash } from "lucide-react";
+import { ServerCrash, Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BrandMark } from "@/components/brand-mark";
@@ -108,8 +108,18 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {capabilities && (
             <div className="hidden md:flex items-center gap-2 mr-4">
+              {capabilities.provider.includes("NVIDIA") && (
+                <Badge
+                  className="font-mono text-[10px] uppercase gap-1 bg-[#76b900] hover:bg-[#76b900] text-white border-0"
+                >
+                  <Cpu className="w-2.5 h-2.5" />
+                  NVIDIA
+                </Badge>
+              )}
               <Badge variant="outline" className="font-mono text-[10px] uppercase border-border">
-                {capabilities.provider}
+                {capabilities.provider.includes("NVIDIA")
+                  ? capabilities.provider.replace(" + NVIDIA cinematic direction", "")
+                  : capabilities.provider}
               </Badge>
               {capabilities.referenceGuidance && (
                 <Badge variant="secondary" className="font-mono text-[10px] uppercase">

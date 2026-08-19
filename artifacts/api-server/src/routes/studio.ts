@@ -24,6 +24,7 @@ import {
   generateImageBuffer,
 } from "@workspace/integrations-openai-ai-server/image";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { createCinematicScenePrompt } from "../services/nvidia-cinematic-prompt";
 
 const router: IRouter = Router();
 const maxReferenceBytes = 10 * 1024 * 1024;
@@ -235,7 +236,9 @@ router.get("/studio/capabilities", (_req, res): void => {
     GetStudioCapabilitiesResponse.parse({
       imageGeneration: true,
       referenceGuidance: true,
-      provider: "OpenAI image generation",
+      provider: process.env.NVIDIA_API_KEY
+        ? "OpenAI image generation + NVIDIA cinematic direction"
+        : "OpenAI image generation + cinematic direction",
     }),
   );
 });
@@ -514,6 +517,11 @@ router.post("/studio/images", async (req, res): Promise<void> => {
   let temporaryReference: string | null = null;
 
   try {
+    const cinematicPrompt = await createCinematicScenePrompt(
+      prompt,
+      Boolean(referenceImage),
+      fidelity,
+    );
     let imageBuffer: Buffer;
     if (referenceImage) {
       temporaryReference = await writeReferenceFile(referenceImage);
@@ -523,10 +531,13 @@ router.post("/studio/images", async (req, res): Promise<void> => {
           : "Use the uploaded image as the primary identity reference. Preserve the subject's face, skin tone, hairstyle, and distinctive features while allowing moderate creative interpretation.";
       imageBuffer = await editImages(
         [temporaryReference],
-        `${prompt}\n\n${fidelityInstruction}`,
+        `${cinematicPrompt}\n\n${fidelityInstruction}`,
       );
     } else {
-      imageBuffer = await generateImageBuffer(prompt, imageSizeFor(aspectRatio));
+      imageBuffer = await generateImageBuffer(
+        cinematicPrompt,
+        imageSizeFor(aspectRatio),
+      );
     }
 
     if (!imageBuffer.length) {
