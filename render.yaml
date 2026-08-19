@@ -7,6 +7,7 @@ services:
       pnpm install --frozen-lockfile &&
       PORT=5173 BASE_PATH=/ pnpm --filter @workspace/curtis-image-studio run build &&
       pnpm --filter @workspace/api-server run build
+    preDeployCommand: pnpm --filter @workspace/db run migrate
     startCommand: SERVE_STUDIO_STATIC=true node --enable-source-maps artifacts/api-server/dist/index.mjs
     healthCheckPath: /api/healthz
     envVars:
@@ -20,6 +21,10 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      - key: STUDIO_ACCESS_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        sync: false
       - key: AI_INTEGRATIONS_OPENAI_API_KEY
         sync: false
       - key: AI_INTEGRATIONS_OPENAI_BASE_URL

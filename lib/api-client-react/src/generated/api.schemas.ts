@@ -62,6 +62,81 @@ export interface StudioImage {
   fidelity: StudioImageFidelity;
 }
 
+export type StudioSceneInputAspectRatio = typeof StudioSceneInputAspectRatio[keyof typeof StudioSceneInputAspectRatio];
+
+
+export const StudioSceneInputAspectRatio = {
+  '16:9': '16:9',
+  '9:16': '9:16',
+  '1:1': '1:1',
+} as const;
+
+export type StudioSceneInputFidelity = typeof StudioSceneInputFidelity[keyof typeof StudioSceneInputFidelity];
+
+
+export const StudioSceneInputFidelity = {
+  high: 'high',
+  balanced: 'balanced',
+} as const;
+
+export interface StudioSceneInput {
+  /**
+     * @minLength 1
+     * @maxLength 6000
+     */
+  prompt: string;
+  aspectRatio: StudioSceneInputAspectRatio;
+  fidelity: StudioSceneInputFidelity;
+  referenceUsed: boolean;
+  /** @maxLength 16000000 */
+  imageDataUrl: string;
+  /** @maxLength 200 */
+  provider: string;
+}
+
+export type StudioSceneAspectRatio = typeof StudioSceneAspectRatio[keyof typeof StudioSceneAspectRatio];
+
+
+export const StudioSceneAspectRatio = {
+  '16:9': '16:9',
+  '9:16': '9:16',
+  '1:1': '1:1',
+} as const;
+
+export type StudioSceneFidelity = typeof StudioSceneFidelity[keyof typeof StudioSceneFidelity];
+
+
+export const StudioSceneFidelity = {
+  high: 'high',
+  balanced: 'balanced',
+} as const;
+
+export interface StudioScene {
+  id: string;
+  prompt: string;
+  aspectRatio: StudioSceneAspectRatio;
+  fidelity: StudioSceneFidelity;
+  referenceUsed: boolean;
+  imageDataUrl: string;
+  provider: string;
+  createdAt: string;
+}
+
+export interface StudioSessionInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  password: string;
+}
+
+export interface StudioSessionStatus {
+  /** Whether the caller currently holds a valid operator session */
+  unlocked: boolean;
+  /** Whether an access password is configured (false in open dev mode) */
+  required: boolean;
+}
+
 export type StudioPostCopyInputFormat = typeof StudioPostCopyInputFormat[keyof typeof StudioPostCopyInputFormat];
 
 

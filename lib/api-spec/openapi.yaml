@@ -68,6 +68,142 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /studio/session:
+    get:
+      operationId: getStudioSession
+      tags: [studio]
+      summary: Report whether the caller has an unlocked operator session
+      responses:
+        "200":
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioSessionStatus"
+    post:
+      operationId: createStudioSession
+      tags: [studio]
+      summary: Unlock the studio with the operator access password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioSessionInput"
+      responses:
+        "200":
+          description: Studio unlocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioSessionStatus"
+        "401":
+          description: Incorrect access password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteStudioSession
+      tags: [studio]
+      summary: Lock the studio (clear the operator session)
+      responses:
+        "204":
+          description: Studio locked
+  /studio/scenes:
+    get:
+      operationId: getStudioScenes
+      tags: [studio]
+      summary: List generated studio scenes
+      responses:
+        "200":
+          description: Generated scenes, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StudioScene"
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createStudioScene
+      tags: [studio]
+      summary: Save a generated studio scene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudioSceneInput"
+      responses:
+        "201":
+          description: Saved generated scene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudioScene"
+        "400":
+          description: Invalid scene
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Scene image is too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteStudioScenes
+      tags: [studio]
+      summary: Delete all generated studio scenes
+      responses:
+        "204":
+          description: All generated scenes deleted
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/scenes/{sceneId}:
+    delete:
+      operationId: deleteStudioScene
+      tags: [studio]
+      summary: Delete one generated studio scene
+      parameters:
+        - name: sceneId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Generated scene deleted
+        "401":
+          description: Studio is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Generated scene not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /studio/post-copy:
     post:
       operationId: generateStudioPostCopy
@@ -311,6 +447,69 @@ components:
         fidelity:
           type: string
           enum: ["high", "balanced"]
+    StudioSceneInput:
+      type: object
+      required: [prompt, aspectRatio, fidelity, referenceUsed, imageDataUrl, provider]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 6000
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1"]
+        fidelity:
+          type: string
+          enum: ["high", "balanced"]
+        referenceUsed:
+          type: boolean
+        imageDataUrl:
+          type: string
+          maxLength: 16000000
+        provider:
+          type: string
+          maxLength: 200
+    StudioScene:
+      type: object
+      required: [id, prompt, aspectRatio, fidelity, referenceUsed, imageDataUrl, provider, createdAt]
+      properties:
+        id:
+          type: string
+        prompt:
+          type: string
+        aspectRatio:
+          type: string
+          enum: ["16:9", "9:16", "1:1"]
+        fidelity:
+          type: string
+          enum: ["high", "balanced"]
+        referenceUsed:
+          type: boolean
+        imageDataUrl:
+          type: string
+        provider:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    StudioSessionInput:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 200
+    StudioSessionStatus:
+      type: object
+      required: [unlocked, required]
+      properties:
+        unlocked:
+          type: boolean
+          description: Whether the caller currently holds a valid operator session
+        required:
+          type: boolean
+          description: Whether an access password is configured (false in open dev mode)
     StudioPostCopyInput:
       type: object
       required: [prompt, format]

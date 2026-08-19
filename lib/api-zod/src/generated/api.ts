@@ -52,6 +52,102 @@ export const GenerateStudioImageResponse = zod.object({
 
 
 /**
+ * @summary Report whether the caller has an unlocked operator session
+ */
+export const GetStudioSessionResponse = zod.object({
+  "unlocked": zod.boolean().describe('Whether the caller currently holds a valid operator session'),
+  "required": zod.boolean().describe('Whether an access password is configured (false in open dev mode)')
+})
+
+
+/**
+ * @summary Unlock the studio with the operator access password
+ */
+export const createStudioSessionBodyPasswordMax = 200;
+
+
+
+export const CreateStudioSessionBody = zod.object({
+  "password": zod.string().min(1).max(createStudioSessionBodyPasswordMax)
+})
+
+export const CreateStudioSessionResponse = zod.object({
+  "unlocked": zod.boolean().describe('Whether the caller currently holds a valid operator session'),
+  "required": zod.boolean().describe('Whether an access password is configured (false in open dev mode)')
+})
+
+
+/**
+ * @summary Lock the studio (clear the operator session)
+ */
+export const DeleteStudioSessionResponse = zod.void()
+
+
+/**
+ * @summary List generated studio scenes
+ */
+export const GetStudioScenesResponseItem = zod.object({
+  "id": zod.string(),
+  "prompt": zod.string(),
+  "aspectRatio": zod.enum(['16:9', '9:16', '1:1']),
+  "fidelity": zod.enum(['high', 'balanced']),
+  "referenceUsed": zod.boolean(),
+  "imageDataUrl": zod.string(),
+  "provider": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const GetStudioScenesResponse = zod.array(GetStudioScenesResponseItem)
+
+
+/**
+ * @summary Save a generated studio scene
+ */
+export const createStudioSceneBodyPromptMax = 6000;
+
+export const createStudioSceneBodyImageDataUrlMax = 16000000;
+
+export const createStudioSceneBodyProviderMax = 200;
+
+
+
+export const CreateStudioSceneBody = zod.object({
+  "prompt": zod.string().min(1).max(createStudioSceneBodyPromptMax),
+  "aspectRatio": zod.enum(['16:9', '9:16', '1:1']),
+  "fidelity": zod.enum(['high', 'balanced']),
+  "referenceUsed": zod.boolean(),
+  "imageDataUrl": zod.string().max(createStudioSceneBodyImageDataUrlMax),
+  "provider": zod.string().max(createStudioSceneBodyProviderMax)
+})
+
+export const CreateStudioSceneResponse = zod.object({
+  "id": zod.string(),
+  "prompt": zod.string(),
+  "aspectRatio": zod.enum(['16:9', '9:16', '1:1']),
+  "fidelity": zod.enum(['high', 'balanced']),
+  "referenceUsed": zod.boolean(),
+  "imageDataUrl": zod.string(),
+  "provider": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete all generated studio scenes
+ */
+export const DeleteStudioScenesResponse = zod.void()
+
+
+/**
+ * @summary Delete one generated studio scene
+ */
+export const DeleteStudioSceneParams = zod.object({
+  "sceneId": zod.coerce.string()
+})
+
+export const DeleteStudioSceneResponse = zod.void()
+
+
+/**
  * @summary Generate an editable Instagram caption for a studio asset
  */
 export const generateStudioPostCopyBodyTitleMax = 160;

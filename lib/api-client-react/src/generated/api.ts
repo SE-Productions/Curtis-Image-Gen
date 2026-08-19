@@ -31,6 +31,10 @@ import type {
   StudioImageInput,
   StudioPostCopy,
   StudioPostCopyInput,
+  StudioScene,
+  StudioSceneInput,
+  StudioSessionInput,
+  StudioSessionStatus,
   StudioVideoInput,
   StudioVideoTask
 } from './api.schemas';
@@ -286,6 +290,515 @@ export const useGenerateStudioImage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getGenerateStudioImageMutationOptions(options));
+    }
+
+export const getGetStudioSessionUrl = () => {
+
+
+
+
+  return `/api/studio/session`
+}
+
+/**
+ * @summary Report whether the caller has an unlocked operator session
+ */
+export const getStudioSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<StudioSessionStatus> => {
+
+  return customFetch<StudioSessionStatus>(getGetStudioSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStudioSessionQueryKey = () => {
+    return [
+    `/api/studio/session`
+    ] as const;
+    }
+
+
+export const getGetStudioSessionQueryOptions = <TData = Awaited<ReturnType<typeof getStudioSession>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStudioSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudioSession>>> = ({ signal }) => getStudioSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStudioSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStudioSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getStudioSession>>>
+export type GetStudioSessionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Report whether the caller has an unlocked operator session
+ */
+
+export function useGetStudioSession<TData = Awaited<ReturnType<typeof getStudioSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStudioSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateStudioSessionUrl = () => {
+
+
+
+
+  return `/api/studio/session`
+}
+
+/**
+ * @summary Unlock the studio with the operator access password
+ */
+export const createStudioSession = async (studioSessionInput: StudioSessionInput, options?: Parameters<typeof customFetch>[1]): Promise<StudioSessionStatus> => {
+
+  return customFetch<StudioSessionStatus>(getCreateStudioSessionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(studioSessionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateStudioSessionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStudioSession>>, TError,{data: BodyType<StudioSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStudioSession>>, TError,{data: BodyType<StudioSessionInput>}, TContext> => {
+
+const mutationKey = ['createStudioSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStudioSession>>, {data: BodyType<StudioSessionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStudioSession(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStudioSessionMutationResult = NonNullable<Awaited<ReturnType<typeof createStudioSession>>>
+    export type CreateStudioSessionMutationBody = BodyType<StudioSessionInput>
+    export type CreateStudioSessionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Unlock the studio with the operator access password
+ */
+export const useCreateStudioSession = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStudioSession>>, TError,{data: BodyType<StudioSessionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStudioSession>>,
+        TError,
+        {data: BodyType<StudioSessionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStudioSessionMutationOptions(options));
+    }
+
+export const getDeleteStudioSessionUrl = () => {
+
+
+
+
+  return `/api/studio/session`
+}
+
+/**
+ * @summary Lock the studio (clear the operator session)
+ */
+export const deleteStudioSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteStudioSessionUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteStudioSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStudioSession>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteStudioSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStudioSession>>, void> = () => {
+
+
+          return  deleteStudioSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStudioSessionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStudioSession>>>
+
+    export type DeleteStudioSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Lock the studio (clear the operator session)
+ */
+export const useDeleteStudioSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStudioSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteStudioSessionMutationOptions(options));
+    }
+
+export const getGetStudioScenesUrl = () => {
+
+
+
+
+  return `/api/studio/scenes`
+}
+
+/**
+ * @summary List generated studio scenes
+ */
+export const getStudioScenes = async ( options?: Parameters<typeof customFetch>[1]): Promise<StudioScene[]> => {
+
+  return customFetch<StudioScene[]>(getGetStudioScenesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStudioScenesQueryKey = () => {
+    return [
+    `/api/studio/scenes`
+    ] as const;
+    }
+
+
+export const getGetStudioScenesQueryOptions = <TData = Awaited<ReturnType<typeof getStudioScenes>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioScenes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStudioScenesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudioScenes>>> = ({ signal }) => getStudioScenes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStudioScenes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStudioScenesQueryResult = NonNullable<Awaited<ReturnType<typeof getStudioScenes>>>
+export type GetStudioScenesQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary List generated studio scenes
+ */
+
+export function useGetStudioScenes<TData = Awaited<ReturnType<typeof getStudioScenes>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioScenes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStudioScenesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateStudioSceneUrl = () => {
+
+
+
+
+  return `/api/studio/scenes`
+}
+
+/**
+ * @summary Save a generated studio scene
+ */
+export const createStudioScene = async (studioSceneInput: StudioSceneInput, options?: Parameters<typeof customFetch>[1]): Promise<StudioScene> => {
+
+  return customFetch<StudioScene>(getCreateStudioSceneUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(studioSceneInput)
+  }
+);}
+
+
+
+
+
+export const getCreateStudioSceneMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStudioScene>>, TError,{data: BodyType<StudioSceneInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStudioScene>>, TError,{data: BodyType<StudioSceneInput>}, TContext> => {
+
+const mutationKey = ['createStudioScene'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStudioScene>>, {data: BodyType<StudioSceneInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStudioScene(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStudioSceneMutationResult = NonNullable<Awaited<ReturnType<typeof createStudioScene>>>
+    export type CreateStudioSceneMutationBody = BodyType<StudioSceneInput>
+    export type CreateStudioSceneMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save a generated studio scene
+ */
+export const useCreateStudioScene = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStudioScene>>, TError,{data: BodyType<StudioSceneInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStudioScene>>,
+        TError,
+        {data: BodyType<StudioSceneInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStudioSceneMutationOptions(options));
+    }
+
+export const getDeleteStudioScenesUrl = () => {
+
+
+
+
+  return `/api/studio/scenes`
+}
+
+/**
+ * @summary Delete all generated studio scenes
+ */
+export const deleteStudioScenes = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteStudioScenesUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteStudioScenesMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScenes>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScenes>>, TError,void, TContext> => {
+
+const mutationKey = ['deleteStudioScenes'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStudioScenes>>, void> = () => {
+
+
+          return  deleteStudioScenes(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStudioScenesMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStudioScenes>>>
+
+    export type DeleteStudioScenesMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete all generated studio scenes
+ */
+export const useDeleteStudioScenes = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScenes>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStudioScenes>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDeleteStudioScenesMutationOptions(options));
+    }
+
+export const getDeleteStudioSceneUrl = (sceneId: string,) => {
+
+
+
+
+  return `/api/studio/scenes/${sceneId}`
+}
+
+/**
+ * @summary Delete one generated studio scene
+ */
+export const deleteStudioScene = async (sceneId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteStudioSceneUrl(sceneId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteStudioSceneMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScene>>, TError,{sceneId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScene>>, TError,{sceneId: string}, TContext> => {
+
+const mutationKey = ['deleteStudioScene'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStudioScene>>, {sceneId: string}> = (props) => {
+          const {sceneId} = props ?? {};
+
+          return  deleteStudioScene(sceneId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStudioSceneMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStudioScene>>>
+
+    export type DeleteStudioSceneMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete one generated studio scene
+ */
+export const useDeleteStudioScene = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStudioScene>>, TError,{sceneId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStudioScene>>,
+        TError,
+        {sceneId: string},
+        TContext
+      > => {
+      return useMutation(getDeleteStudioSceneMutationOptions(options));
     }
 
 export const getGenerateStudioPostCopyUrl = () => {

@@ -3,12 +3,17 @@ import { unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Router, type IRouter, type Request } from "express";
+import { desc, eq, inArray } from "drizzle-orm";
 import { Composio } from "@composio/core";
 import {
+  CreateStudioSceneBody,
+  CreateStudioSceneResponse,
+  DeleteStudioSceneParams,
   GenerateStudioImageBody,
   GenerateStudioImageResponse,
   GenerateStudioPostCopyBody,
   GenerateStudioPostCopyResponse,
+  GetStudioScenesResponseItem,
   GetStudioVideoParams,
   GetStudioVideoResponse,
   BeginInstagramConnectionResponse,
@@ -19,17 +24,29 @@ import {
   StartStudioVideoBody,
   StartStudioVideoResponse,
 } from "@workspace/api-zod";
+import { db, scenes } from "@workspace/db";
 import {
   editImages,
   generateImageBuffer,
 } from "@workspace/integrations-openai-ai-server/image";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { createCinematicScenePrompt } from "../services/nvidia-cinematic-prompt";
+import {
+  clearSessionCookie,
+  hasValidSession,
+  isAccessPasswordConfigured,
+  requireStudioSession,
+  setSessionCookie,
+  studioAccessIsAvailable,
+  verifyPassword,
+} from "../services/studio-session";
 
 const router: IRouter = Router();
 const maxReferenceBytes = 10 * 1024 * 1024;
 const composioUserId = "curtis-image-studio";
 const hostedAssetTtlMs = 20 * 60 * 1000;
+const maxStudioScenes = 50;
+const maxStudioSceneImageDataUrlLength = 16_000_000;
 const hostedAssets = new Map<
   string,
   { bytes: Buffer; contentType: "image/png" | "image/jpeg"; expiresAt: number }
@@ -241,6 +258,127 @@ router.get("/studio/capabilities", (_req, res): void => {
         : "OpenAI image generation + cinematic direction",
     }),
   );
+});
+
+router.get("/studio/session", (req, res): void => {
+  res.json({
+    unlocked:
+      studioAccessIsAvailable() &&
+      (!isAccessPasswordConfigured() || hasValidSession(req)),
+    required: isAccessPasswordConfigured() || !studioAccessIsAvailable(),
+  });
+});
+
+router.post("/studio/session", (req, res): void => {
+  if (!isAccessPasswordConfigured()) {
+    if (!studioAccessIsAvailable()) {
+      res.status(503).json({
+        error: "Studio access protection is not configured.",
+      });
+      return;
+    }
+    // Open mode: no password configured, so the studio is always unlocked.
+    res.json({ unlocked: true, required: false });
+    return;
+  }
+
+  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  if (!verifyPassword(password)) {
+    res.status(401).json({ error: "Incorrect access password." });
+    return;
+  }
+
+  setSessionCookie(res);
+  res.json({ unlocked: true, required: true });
+});
+
+router.delete("/studio/session", (_req, res): void => {
+  clearSessionCookie(res);
+  res.sendStatus(204);
+});
+
+router.get("/studio/scenes", requireStudioSession, async (_req, res): Promise<void> => {
+  const storedScenes = await db
+    .select()
+    .from(scenes)
+    .orderBy(desc(scenes.createdAt))
+    .limit(maxStudioScenes);
+
+  res.json(storedScenes.map((scene) => GetStudioScenesResponseItem.parse(scene)));
+});
+
+router.post("/studio/scenes", requireStudioSession, async (req, res): Promise<void> => {
+  // Check this before Zod validation so every over-limit image (including the
+  // 16–22 MB range accepted by the transport) receives the documented 413.
+  if (
+    typeof req.body?.imageDataUrl === "string" &&
+    req.body.imageDataUrl.length > maxStudioSceneImageDataUrlLength
+  ) {
+    res.status(413).json({ error: "The generated scene image is too large to save." });
+    return;
+  }
+
+  const parsed = CreateStudioSceneBody.safeParse(req.body);
+  if (!parsed.success) {
+    req.log.warn({ errors: parsed.error.flatten() }, "Invalid studio scene request");
+    res.status(400).json({ error: "Add a valid generated scene before saving." });
+    return;
+  }
+
+  const { imageDataUrl } = parsed.data;
+  const savedScene = await db.transaction(async (tx) => {
+    const [scene] = await tx
+      .insert(scenes)
+      .values({
+        id: randomUUID(),
+        prompt: parsed.data.prompt,
+        aspectRatio: parsed.data.aspectRatio,
+        fidelity: parsed.data.fidelity,
+        referenceUsed: parsed.data.referenceUsed,
+        imageDataUrl: parsed.data.imageDataUrl,
+        provider: parsed.data.provider,
+      })
+      .returning();
+
+    const excessScenes = await tx
+      .select({ id: scenes.id })
+      .from(scenes)
+      .orderBy(desc(scenes.createdAt))
+      .offset(maxStudioScenes);
+
+    if (excessScenes.length > 0) {
+      await tx.delete(scenes).where(inArray(scenes.id, excessScenes.map(({ id }) => id)));
+    }
+
+    return scene;
+  });
+
+  res.status(201).json(CreateStudioSceneResponse.parse(savedScene));
+});
+
+router.delete("/studio/scenes", requireStudioSession, async (_req, res): Promise<void> => {
+  await db.delete(scenes);
+  res.sendStatus(204);
+});
+
+router.delete("/studio/scenes/:sceneId", requireStudioSession, async (req, res): Promise<void> => {
+  const params = DeleteStudioSceneParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid scene id." });
+    return;
+  }
+
+  const deleted = await db
+    .delete(scenes)
+    .where(eq(scenes.id, params.data.sceneId))
+    .returning({ id: scenes.id });
+
+  if (deleted.length === 0) {
+    res.status(404).json({ error: "Generated scene not found." });
+    return;
+  }
+
+  res.sendStatus(204);
 });
 
 router.get("/studio/instagram/status", (_req, res): void => {

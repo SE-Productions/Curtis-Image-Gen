@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, Clock, ImageIcon, Instagram, Eye } from "lucide-react";
+import { Download, Trash2, Clock, ImageIcon, Instagram, Eye, Loader2 } from "lucide-react";
 import { HistoryItem } from "@/hooks/use-studio-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,21 @@ import { InstagramPublishDialog } from "./instagram-publish-dialog";
 
 interface HistoryGalleryProps {
   items: HistoryItem[];
+  isLoading?: boolean;
   onDelete: (id: string) => void;
   onSelect: (item: HistoryItem) => void;
 }
 
-export function HistoryGallery({ items, onDelete, onSelect }: HistoryGalleryProps) {
+export function HistoryGallery({ items, isLoading, onDelete, onSelect }: HistoryGalleryProps) {
+  if (isLoading) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center text-center border-t border-border mt-8" data-testid="history-loading">
+        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin mb-3" />
+        <p className="text-sm text-muted-foreground">Loading your studio album…</p>
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="py-12 flex flex-col items-center justify-center text-center border-t border-border mt-8" data-testid="history-empty">
@@ -21,7 +31,7 @@ export function HistoryGallery({ items, onDelete, onSelect }: HistoryGalleryProp
         </div>
         <h3 className="font-medium text-foreground">No History Yet</h3>
         <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-          Your generated scenes will appear here. Everything is saved locally in your browser.
+          Your generated scenes will appear here. Everything is saved in the cloud.
         </p>
       </div>
     );
@@ -42,7 +52,7 @@ export function HistoryGallery({ items, onDelete, onSelect }: HistoryGalleryProp
         <h2 className="text-2xl font-serif text-foreground">Studio Album</h2>
         <div className="text-sm text-muted-foreground flex items-center gap-1.5">
           <Clock className="w-4 h-4" />
-          <span>Locally saved</span>
+          <span>Saved to cloud</span>
         </div>
       </div>
 

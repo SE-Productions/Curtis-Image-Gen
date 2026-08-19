@@ -1,5 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import { StudioImageInput, StudioImage } from "@workspace/api-client-react";
+import { useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  StudioImage,
+  StudioImageInput,
+  StudioScene,
+  useGetStudioScenes,
+  useCreateStudioScene,
+  useDeleteStudioScene,
+  getGetStudioScenesQueryKey,
+} from "@workspace/api-client-react";
 
 export type ScriptState = {
   title: string;
@@ -9,8 +19,13 @@ export type ScriptState = {
   fidelity: "high" | "balanced";
 };
 
+/**
+ * HistoryItem is a view over a persisted StudioScene that preserves the
+ * shape the rest of the UI expects (input/output split, numeric timestamp).
+ */
 export type HistoryItem = {
   id: string;
+  /** Unix timestamp derived from the scene's createdAt ISO string */
   timestamp: number;
   input: StudioImageInput;
   output: StudioImage;
@@ -19,7 +34,6 @@ export type HistoryItem = {
 const STORAGE_KEYS = {
   SCRIPT: "curtis-script-v1",
   REFERENCE: "curtis-reference-v1",
-  HISTORY: "curtis-history-v1",
 };
 
 const defaultScript: ScriptState = {
@@ -30,7 +44,33 @@ const defaultScript: ScriptState = {
   fidelity: "high",
 };
 
+function sceneToHistoryItem(scene: StudioScene): HistoryItem {
+  return {
+    id: scene.id,
+    timestamp: new Date(scene.createdAt).getTime(),
+    input: {
+      prompt: scene.prompt,
+      aspectRatio: scene.aspectRatio,
+      fidelity: scene.fidelity,
+    },
+    output: {
+      imageDataUrl: scene.imageDataUrl,
+      provider: scene.provider,
+      referenceUsed: scene.referenceUsed,
+      fidelity: scene.fidelity,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Script state — still local (draft, not persisted to the DB)
+// ---------------------------------------------------------------------------
+
+import { useState, useEffect } from "react";
+
 export function useStudioStore() {
+  const queryClient = useQueryClient();
+
   const [script, setScript] = useState<ScriptState>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.SCRIPT);
@@ -52,16 +92,7 @@ export function useStudioStore() {
     }
   });
 
-  const [history, setHistory] = useState<HistoryItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.HISTORY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Save script whenever it changes
+  // Persist draft script to localStorage
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.SCRIPT, JSON.stringify(script));
@@ -70,7 +101,7 @@ export function useStudioStore() {
     }
   }, [script]);
 
-  // Save reference image whenever it changes
+  // Persist reference image to localStorage
   useEffect(() => {
     try {
       if (referenceImage) {
@@ -79,18 +110,75 @@ export function useStudioStore() {
         localStorage.removeItem(STORAGE_KEYS.REFERENCE);
       }
     } catch (e) {
-      console.warn("Failed to save reference image. Might be too large for localStorage.", e);
+      console.warn(
+        "Failed to save reference image. Might be too large for localStorage.",
+        e,
+      );
     }
   }, [referenceImage]);
 
-  // Save history whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
-    } catch (e) {
-      console.warn("Failed to save history.", e);
-    }
-  }, [history]);
+  // ---------------------------------------------------------------------------
+  // Server-backed history
+  // ---------------------------------------------------------------------------
+
+  const { data: scenes, isLoading: historyLoading } = useGetStudioScenes();
+
+  const history: HistoryItem[] = (scenes ?? []).map(sceneToHistoryItem);
+
+  const createMutation = useCreateStudioScene({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: getGetStudioScenesQueryKey(),
+        });
+      },
+      onError: (error: unknown) => {
+        const apiError = error as { status?: number; data?: { error?: string } };
+        const msg =
+          apiError?.status === 401
+            ? "The studio session expired before this scene could be saved. Unlock the studio and generate it again."
+            : apiError?.status === 413
+            ? "This scene is too large to save to the album. You can still download it from the canvas."
+            : "Could not save the scene to the album. Check your connection and try again.";
+        toast.warning("Scene not saved to album", { description: msg });
+      },
+    },
+  });
+
+  const deleteMutation = useDeleteStudioScene({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: getGetStudioScenesQueryKey(),
+        });
+      },
+    },
+  });
+
+  const addHistoryItem = useCallback(
+    (input: StudioImageInput, output: StudioImage) => {
+      createMutation.mutate({
+        data: {
+          prompt: input.prompt,
+          aspectRatio: input.aspectRatio,
+          fidelity: input.fidelity ?? "high",
+          referenceUsed: output.referenceUsed,
+          imageDataUrl: output.imageDataUrl,
+          provider: output.provider,
+        },
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [createMutation.mutate],
+  );
+
+  const deleteHistoryItem = useCallback(
+    (id: string) => {
+      deleteMutation.mutate({ sceneId: id });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deleteMutation.mutate],
+  );
 
   const updateScript = useCallback((updates: Partial<ScriptState>) => {
     setScript((prev) => ({ ...prev, ...updates }));
@@ -101,20 +189,6 @@ export function useStudioStore() {
     setReferenceImage(null);
   }, []);
 
-  const addHistoryItem = useCallback((input: StudioImageInput, output: StudioImage) => {
-    const newItem: HistoryItem = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      input,
-      output,
-    };
-    setHistory((prev) => [newItem, ...prev].slice(0, 50)); // Keep last 50
-  }, []);
-
-  const deleteHistoryItem = useCallback((id: string) => {
-    setHistory((prev) => prev.filter((item) => item.id !== id));
-  }, []);
-
   return {
     script,
     updateScript,
@@ -122,6 +196,7 @@ export function useStudioStore() {
     referenceImage,
     setReferenceImage,
     history,
+    historyLoading,
     addHistoryItem,
     deleteHistoryItem,
   };

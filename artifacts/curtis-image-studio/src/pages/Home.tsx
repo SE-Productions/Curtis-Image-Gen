@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useStudioStore, HistoryItem } from "@/hooks/use-studio-store";
 import { SetupPanel } from "@/components/setup-panel";
 import { ReviewPanel } from "@/components/review-panel";
@@ -9,22 +10,37 @@ import {
   useHealthCheck, 
   StudioImage,
   StudioImageInput,
+  useCreateStudioSession,
+  useGetStudioSession,
   getHealthCheckQueryKey,
-  getGetStudioCapabilitiesQueryKey
+  getGetStudioCapabilitiesQueryKey,
+  getGetStudioScenesQueryKey,
+  getGetStudioSessionQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { ServerCrash, Cpu } from "lucide-react";
+import { LockKeyhole, ServerCrash, Cpu } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BrandMark } from "@/components/brand-mark";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Home() {
+  const queryClient = useQueryClient();
   const { 
     script, 
     updateScript, 
     referenceImage, 
     setReferenceImage,
     history,
+    historyLoading,
     addHistoryItem,
     deleteHistoryItem
   } = useStudioStore();
@@ -37,6 +53,7 @@ export default function Home() {
   } | null>(null);
   
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [accessPassword, setAccessPassword] = useState("");
 
   const { data: health, isError: healthError } = useHealthCheck({
     query: { refetchInterval: 30000, queryKey: getHealthCheckQueryKey() }
@@ -46,7 +63,37 @@ export default function Home() {
     query: { queryKey: getGetStudioCapabilitiesQueryKey() }
   });
   
+  const { data: studioSession, isLoading: sessionLoading } = useGetStudioSession({
+    query: { retry: false, queryKey: getGetStudioSessionQueryKey() },
+  });
+
   const generateMutation = useGenerateStudioImage();
+  const unlockMutation = useCreateStudioSession({
+    mutation: {
+      onSuccess: () => {
+        setAccessPassword("");
+        queryClient.invalidateQueries({
+          queryKey: getGetStudioSessionQueryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: getGetStudioScenesQueryKey(),
+        });
+        toast.success("Studio unlocked");
+      },
+      onError: () => {
+        toast.error("That access password is not correct.");
+      },
+    },
+  });
+
+  const studioLocked =
+    studioSession?.required === true && studioSession.unlocked !== true;
+
+  const handleUnlock = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!accessPassword) return;
+    unlockMutation.mutate({ data: { password: accessPassword } });
+  };
 
   const handleGenerate = () => {
     if (!script.prompt.trim()) {
@@ -174,7 +221,12 @@ export default function Home() {
               currentAsset={currentAsset}
               isGenerating={generateMutation.isPending}
               onGenerate={handleGenerate}
-              canGenerate={isHealthy && script.prompt.trim().length > 0}
+              canGenerate={
+                isHealthy &&
+                !sessionLoading &&
+                !studioLocked &&
+                script.prompt.trim().length > 0
+              }
               generationError={generationError}
             />
           </div>
@@ -182,11 +234,48 @@ export default function Home() {
 
         {/* History Area */}
         <HistoryGallery 
-          items={history} 
+          items={history}
+          isLoading={historyLoading}
           onDelete={deleteHistoryItem} 
           onSelect={handleSelectHistoryItem} 
         />
       </main>
+
+      <Dialog open={studioLocked}>
+        <DialogContent
+          className="max-w-md"
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <LockKeyhole className="h-5 w-5" />
+            </div>
+            <DialogTitle>Unlock Curtis Image Studio</DialogTitle>
+            <DialogDescription>
+              Enter the operator access password to view and save the private Studio Album.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUnlock} className="space-y-4">
+            <Input
+              autoFocus
+              type="password"
+              autoComplete="current-password"
+              placeholder="Access password"
+              value={accessPassword}
+              onChange={(event) => setAccessPassword(event.target.value)}
+              disabled={unlockMutation.isPending}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!accessPassword || unlockMutation.isPending}
+            >
+              {unlockMutation.isPending ? "Unlocking…" : "Unlock Studio"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
