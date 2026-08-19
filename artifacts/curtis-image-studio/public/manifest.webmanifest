@@ -1,0 +1,17 @@
+{
+  "name": "Curtis Image Studio",
+  "short_name": "Curtis Studio",
+  "description": "Turn one reference photo into consistent visual content for Instagram.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F2EC",
+  "theme_color": "#17233B",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

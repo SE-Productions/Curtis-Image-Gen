@@ -13,9 +13,10 @@ import {
   getGetStudioCapabilitiesQueryKey
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { Camera, ServerCrash } from "lucide-react";
+import { ServerCrash } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BrandMark } from "@/components/brand-mark";
 
 export default function Home() {
   const { 
@@ -95,9 +96,7 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center rounded-md">
-            <Camera className="w-5 h-5" />
-          </div>
+          <BrandMark className="w-10 h-10 shrink-0 drop-shadow-sm" />
           <div>
             <h1 className="font-serif text-xl leading-none text-foreground tracking-wide">Curtis Image Studio</h1>
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 font-mono">
