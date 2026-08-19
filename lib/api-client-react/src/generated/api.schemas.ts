@@ -44,6 +44,33 @@ export interface StudioImage {
   referenceUsed: boolean;
 }
 
+export interface InstagramPublishingStatus {
+  available: boolean;
+  accountType: string;
+}
+
+export interface InstagramConnection {
+  authorizationUrl: string;
+  /** @nullable */
+  expiresAt?: string | null;
+}
+
+export interface InstagramPublishInput {
+  /** @maxLength 16000000 */
+  imageDataUrl: string;
+  /**
+     * @minLength 1
+     * @maxLength 2200
+     */
+  caption: string;
+}
+
+export interface InstagramPublication {
+  postId: string;
+  publicImageUrl: string;
+  status: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }

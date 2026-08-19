@@ -1,9 +1,10 @@
 import { formatDistanceToNow } from "date-fns";
-import { Download, Trash2, Clock, ImageIcon } from "lucide-react";
+import { Download, Trash2, Clock, ImageIcon, Instagram } from "lucide-react";
 import { HistoryItem } from "@/hooks/use-studio-store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InstagramPublishDialog } from "./instagram-publish-dialog";
 
 interface HistoryGalleryProps {
   items: HistoryItem[];
@@ -56,6 +57,24 @@ export function HistoryGallery({ items, onDelete }: HistoryGalleryProps) {
                 data-testid={`history-img-${item.id}`}
               />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-[2px]">
+                <InstagramPublishDialog 
+                  imageDataUrl={item.output.imageDataUrl}
+                  trigger={
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="secondary" 
+                          size="icon" 
+                          className="h-8 w-8 rounded-full shadow-md bg-pink-100 hover:bg-pink-200 text-pink-600 dark:bg-pink-900/30 dark:hover:bg-pink-900/50 dark:text-pink-500 border-0"
+                          data-testid={`button-instagram-history-${item.id}`}
+                        >
+                          <Instagram className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Publish to Instagram</TooltipContent>
+                    </Tooltip>
+                  }
+                />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 

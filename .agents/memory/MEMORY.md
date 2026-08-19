@@ -1,1 +1,2 @@
 - [Image-generation architecture](image-generation-architecture.md) — keep generation inside the Replit API using managed OpenAI integration; do not restore the retired external proxy.
+- [Instagram publishing](instagram-publishing.md) — use Composio server-side, require confirmation, and host publish media at a public HTTPS URL.

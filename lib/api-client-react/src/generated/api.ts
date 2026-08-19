@@ -22,6 +22,10 @@ import type {
 import type {
   ErrorResponse,
   HealthStatus,
+  InstagramConnection,
+  InstagramPublication,
+  InstagramPublishInput,
+  InstagramPublishingStatus,
   StudioCapabilities,
   StudioImage,
   StudioImageInput
@@ -278,5 +282,301 @@ export const useGenerateStudioImage = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getGenerateStudioImageMutationOptions(options));
+    }
+
+export const getGetInstagramPublishingStatusUrl = () => {
+
+
+
+
+  return `/api/studio/instagram/status`
+}
+
+/**
+ * @summary Get Instagram publishing availability
+ */
+export const getInstagramPublishingStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<InstagramPublishingStatus> => {
+
+  return customFetch<InstagramPublishingStatus>(getGetInstagramPublishingStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInstagramPublishingStatusQueryKey = () => {
+    return [
+    `/api/studio/instagram/status`
+    ] as const;
+    }
+
+
+export const getGetInstagramPublishingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInstagramPublishingStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInstagramPublishingStatus>>> = ({ signal }) => getInstagramPublishingStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInstagramPublishingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getInstagramPublishingStatus>>>
+export type GetInstagramPublishingStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Instagram publishing availability
+ */
+
+export function useGetInstagramPublishingStatus<TData = Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInstagramPublishingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInstagramPublishingStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetStudioAssetUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/studio/assets/${assetId}`
+}
+
+/**
+ * @summary Retrieve a temporary image asset prepared for publishing
+ */
+export const getStudioAsset = async (assetId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetStudioAssetUrl(assetId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStudioAssetQueryKey = (assetId: string,) => {
+    return [
+    `/api/studio/assets/${assetId}`
+    ] as const;
+    }
+
+
+export const getGetStudioAssetQueryOptions = <TData = Awaited<ReturnType<typeof getStudioAsset>>, TError = ErrorType<void>>(assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStudioAssetQueryKey(assetId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStudioAsset>>> = ({ signal }) => getStudioAsset(assetId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: assetId !== null && assetId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStudioAsset>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStudioAssetQueryResult = NonNullable<Awaited<ReturnType<typeof getStudioAsset>>>
+export type GetStudioAssetQueryError = ErrorType<void>
+
+
+/**
+ * @summary Retrieve a temporary image asset prepared for publishing
+ */
+
+export function useGetStudioAsset<TData = Awaited<ReturnType<typeof getStudioAsset>>, TError = ErrorType<void>>(
+ assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStudioAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStudioAssetQueryOptions(assetId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getBeginInstagramConnectionUrl = () => {
+
+
+
+
+  return `/api/studio/instagram/connect`
+}
+
+/**
+ * @summary Start the Instagram account connection flow
+ */
+export const beginInstagramConnection = async ( options?: Parameters<typeof customFetch>[1]): Promise<InstagramConnection> => {
+
+  return customFetch<InstagramConnection>(getBeginInstagramConnectionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getBeginInstagramConnectionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext> => {
+
+const mutationKey = ['beginInstagramConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof beginInstagramConnection>>, void> = () => {
+
+
+          return  beginInstagramConnection(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BeginInstagramConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof beginInstagramConnection>>>
+
+    export type BeginInstagramConnectionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start the Instagram account connection flow
+ */
+export const useBeginInstagramConnection = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof beginInstagramConnection>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getBeginInstagramConnectionMutationOptions(options));
+    }
+
+export const getPublishStudioImageToInstagramUrl = () => {
+
+
+
+
+  return `/api/studio/instagram/publish`
+}
+
+/**
+ * @summary Publish a generated image to the connected Instagram account
+ */
+export const publishStudioImageToInstagram = async (instagramPublishInput: InstagramPublishInput, options?: Parameters<typeof customFetch>[1]): Promise<InstagramPublication> => {
+
+  return customFetch<InstagramPublication>(getPublishStudioImageToInstagramUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(instagramPublishInput)
+  }
+);}
+
+
+
+
+
+export const getPublishStudioImageToInstagramMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishStudioImageToInstagram>>, TError,{data: BodyType<InstagramPublishInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishStudioImageToInstagram>>, TError,{data: BodyType<InstagramPublishInput>}, TContext> => {
+
+const mutationKey = ['publishStudioImageToInstagram'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishStudioImageToInstagram>>, {data: BodyType<InstagramPublishInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  publishStudioImageToInstagram(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishStudioImageToInstagramMutationResult = NonNullable<Awaited<ReturnType<typeof publishStudioImageToInstagram>>>
+    export type PublishStudioImageToInstagramMutationBody = BodyType<InstagramPublishInput>
+    export type PublishStudioImageToInstagramMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Publish a generated image to the connected Instagram account
+ */
+export const usePublishStudioImageToInstagram = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishStudioImageToInstagram>>, TError,{data: BodyType<InstagramPublishInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishStudioImageToInstagram>>,
+        TError,
+        {data: BodyType<InstagramPublishInput>},
+        TContext
+      > => {
+      return useMutation(getPublishStudioImageToInstagramMutationOptions(options));
     }
 

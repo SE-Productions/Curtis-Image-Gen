@@ -49,3 +49,52 @@ export const GenerateStudioImageResponse = zod.object({
 })
 
 
+/**
+ * @summary Get Instagram publishing availability
+ */
+export const GetInstagramPublishingStatusResponse = zod.object({
+  "available": zod.boolean(),
+  "accountType": zod.string()
+})
+
+
+/**
+ * @summary Retrieve a temporary image asset prepared for publishing
+ */
+export const GetStudioAssetParams = zod.object({
+  "assetId": zod.coerce.string()
+})
+
+export const GetStudioAssetResponse = zod.unknown()
+
+
+/**
+ * @summary Start the Instagram account connection flow
+ */
+export const BeginInstagramConnectionResponse = zod.object({
+  "authorizationUrl": zod.string(),
+  "expiresAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Publish a generated image to the connected Instagram account
+ */
+export const publishStudioImageToInstagramBodyImageDataUrlMax = 16000000;
+
+export const publishStudioImageToInstagramBodyCaptionMax = 2200;
+
+
+
+export const PublishStudioImageToInstagramBody = zod.object({
+  "imageDataUrl": zod.string().max(publishStudioImageToInstagramBodyImageDataUrlMax),
+  "caption": zod.string().min(1).max(publishStudioImageToInstagramBodyCaptionMax)
+})
+
+export const PublishStudioImageToInstagramResponse = zod.object({
+  "postId": zod.string(),
+  "publicImageUrl": zod.string(),
+  "status": zod.string()
+})
+
+

@@ -14,6 +14,8 @@ interface ReviewPanelProps {
   aspectRatio: string;
 }
 
+import { InstagramPublishDialog } from "./instagram-publish-dialog";
+
 export function ReviewPanel({ 
   currentImage, 
   isGenerating, 
@@ -111,19 +113,22 @@ export function ReviewPanel({
                   </Badge>
                 )}
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownload}
-                className="gap-2"
-                data-testid="button-download"
-              >
-                {downloaded ? (
-                  <><Check className="w-4 h-4 text-green-500" /> Saved</>
-                ) : (
-                  <><Download className="w-4 h-4" /> Download</>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <InstagramPublishDialog imageDataUrl={currentImage.imageDataUrl} />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleDownload}
+                  className="gap-2"
+                  data-testid="button-download"
+                >
+                  {downloaded ? (
+                    <><Check className="w-4 h-4 text-green-500" /> Saved</>
+                  ) : (
+                    <><Download className="w-4 h-4" /> Download</>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         ) : generationError ? (

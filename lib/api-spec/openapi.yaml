@@ -68,6 +68,97 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /studio/instagram/status:
+    get:
+      operationId: getInstagramPublishingStatus
+      tags: [studio]
+      summary: Get Instagram publishing availability
+      responses:
+        "200":
+          description: Instagram publishing status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstagramPublishingStatus"
+  /studio/assets/{assetId}:
+    get:
+      operationId: getStudioAsset
+      tags: [studio]
+      summary: Retrieve a temporary image asset prepared for publishing
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Image asset
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Asset not found or expired
+  /studio/instagram/connect:
+    post:
+      operationId: beginInstagramConnection
+      tags: [studio]
+      summary: Start the Instagram account connection flow
+      responses:
+        "200":
+          description: Instagram authorization link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstagramConnection"
+        "503":
+          description: Instagram publishing is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /studio/instagram/publish:
+    post:
+      operationId: publishStudioImageToInstagram
+      tags: [studio]
+      summary: Publish a generated image to the connected Instagram account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstagramPublishInput"
+      responses:
+        "200":
+          description: Published Instagram post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstagramPublication"
+        "400":
+          description: Invalid publishing request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: A public deployment URL is needed before publishing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Instagram could not complete the post
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -111,6 +202,43 @@ components:
           type: string
         referenceUsed:
           type: boolean
+    InstagramPublishingStatus:
+      type: object
+      required: [available, accountType]
+      properties:
+        available:
+          type: boolean
+        accountType:
+          type: string
+    InstagramConnection:
+      type: object
+      required: [authorizationUrl]
+      properties:
+        authorizationUrl:
+          type: string
+        expiresAt:
+          type: ["string", "null"]
+    InstagramPublishInput:
+      type: object
+      required: [imageDataUrl, caption]
+      properties:
+        imageDataUrl:
+          type: string
+          maxLength: 16000000
+        caption:
+          type: string
+          minLength: 1
+          maxLength: 2200
+    InstagramPublication:
+      type: object
+      required: [postId, publicImageUrl, status]
+      properties:
+        postId:
+          type: string
+        publicImageUrl:
+          type: string
+        status:
+          type: string
     ErrorResponse:
       type: object
       required: [error]

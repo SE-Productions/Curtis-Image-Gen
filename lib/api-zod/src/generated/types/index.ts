@@ -8,6 +8,10 @@
 
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './instagramConnection';
+export * from './instagramPublication';
+export * from './instagramPublishingStatus';
+export * from './instagramPublishInput';
 export * from './studioCapabilities';
 export * from './studioImage';
 export * from './studioImageInput';
