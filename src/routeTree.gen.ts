@@ -15,6 +15,7 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ApiHealthzRouteImport } from './routes/api/healthz'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronPublishRouteImport } from './routes/api/cron.publish'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
@@ -49,6 +50,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthzRoute = ApiHealthzRouteImport.update({
+  id: '/api/healthz',
+  path: '/api/healthz',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/planner': typeof PlannerRoute
   '/settings': typeof SettingsRoute
+  '/api/healthz': typeof ApiHealthzRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/planner': typeof PlannerRoute
   '/settings': typeof SettingsRoute
+  '/api/healthz': typeof ApiHealthzRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/planner': typeof PlannerRoute
   '/settings': typeof SettingsRoute
+  '/api/healthz': typeof ApiHealthzRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/planner'
     | '/settings'
+    | '/api/healthz'
     | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/planner'
     | '/settings'
+    | '/api/healthz'
     | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/planner'
     | '/settings'
+    | '/api/healthz'
     | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PlannerRoute: typeof PlannerRoute
   SettingsRoute: typeof SettingsRoute
+  ApiHealthzRoute: typeof ApiHealthzRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronPublishRoute: typeof ApiCronPublishRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/healthz': {
+      id: '/api/healthz'
+      path: '/api/healthz'
+      fullPath: '/api/healthz'
+      preLoaderRoute: typeof ApiHealthzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PlannerRoute: PlannerRoute,
   SettingsRoute: SettingsRoute,
+  ApiHealthzRoute: ApiHealthzRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronPublishRoute: ApiCronPublishRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,

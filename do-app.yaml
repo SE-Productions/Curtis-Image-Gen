@@ -6,34 +6,38 @@ services:
   - name: web
     http_port: 8080
     instance_count: 1
-    instance_size_slug: apps-s-1vcpu-1gb
+    instance_size_slug: basic-xs
+    environment_slug: node-js
     source_dir: /
-    build_command: npm ci && npm run build
-    run_command: npx vite preview --host 0.0.0.0 --port 8080
+    git:
+      repo_clone_url: https://github.com/SE-Productions/Curtis-Image-Gen.git
+      branch: main
+    build_command: npm ci && NITRO_PRESET=node-server npm run build
+    run_command: node scripts/migrate.mjs && node .output/server/index.mjs
     health_check:
-      http_path: /
+      http_path: /api/healthz
       port: 8080
-      initial_delay_seconds: 20
-      period_seconds: 30
+      initial_delay_seconds: 30
+      period_seconds: 10
       timeout_seconds: 5
       success_threshold: 1
       failure_threshold: 3
     envs:
       - key: NODE_ENV
         value: production
+        scope: RUN_AND_BUILD_TIME
+      - key: NODE_VERSION
+        value: "22"
+        scope: BUILD_TIME
+      - key: NITRO_PRESET
+        value: node-server
+        scope: RUN_AND_BUILD_TIME
       - key: PORT
         value: "8080"
+        scope: RUN_TIME
       - key: BETTER_AUTH_URL
+        value: https://curtis-image-studio-6eadq.ondigitalocean.app
         scope: RUN_TIME
-        type: GENERAL
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        type: SECRET
-      - key: NVIDIA_API_KEY
-        scope: RUN_TIME
-        type: SECRET
       - key: NVIDIA_PROMPT_MODEL
         value: meta/llama-3.1-70b-instruct
-      - key: XAI_API_KEY
-        scope: RUN_TIME
-        type: SECRET
+        scope: RUN_AND_BUILD_TIME
