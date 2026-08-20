@@ -185,13 +185,14 @@ export const auth = betterAuth({
   baseURL,
   // Deployed apps inject BETTER_AUTH_SECRET. Preview: process-stable secret on
   // globalThis so HMR doesn't invalidate PGLite-backed sessions (see above).
-  secret: env("BETTER_AUTH_SECRET") ?? previewAuthSecret(),
+  secret: env("BETTER_AUTH_SECRET") ?? env("SESSION_SECRET") ?? previewAuthSecret(),
   database,
 
   // CSRF / origin check for credentialed auth POSTs (email sign-up/sign-in, …).
   // See `trustedOrigins` construction above — must cover live preview hosts AND
   // local loopback variants, or clients get "Invalid origin".
   trustedOrigins,
+  rateLimit: { enabled: false },
 
   // Encrypt broker-issued OAuth tokens at rest, and treat the broker's upstreams
   // as trusted first-party identities. The broker owns identity and X emails are

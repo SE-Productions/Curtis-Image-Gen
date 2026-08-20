@@ -17,6 +17,7 @@ import { Route as PlannerRouteImport } from './routes/planner'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiHealthzRouteImport } from './routes/api/healthz'
 import { Route as ApiComposioStatusRouteImport } from './routes/api/composio.status'
+import { Route as ApiStudioLoginRouteImport } from './routes/api/studio.login'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronPublishRouteImport } from './routes/api/cron.publish'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
@@ -61,6 +62,11 @@ const ApiComposioStatusRoute = ApiComposioStatusRouteImport.update({
   path: '/api/composio/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStudioLoginRoute = ApiStudioLoginRouteImport.update({
+  id: '/api/studio/login',
+  path: '/api/studio/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
+  '/api/studio/login': typeof ApiStudioLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
+  '/api/studio/login': typeof ApiStudioLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
+  '/api/studio/login': typeof ApiStudioLoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -128,7 +137,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/healthz'
     | '/api/composio/status'
-        | '/api/auth/$'
+    | '/api/studio/login'
+            | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -141,7 +151,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/healthz'
     | '/api/composio/status'
-        | '/api/auth/$'
+    | '/api/studio/login'
+            | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   id:
@@ -154,7 +165,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/healthz'
     | '/api/composio/status'
-    | '/api/auth/$'
+    | '/api/studio/login'
+        | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   fileRoutesById: FileRoutesById
@@ -168,6 +180,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   ApiHealthzRoute: typeof ApiHealthzRoute
   ApiComposioStatusRoute: typeof ApiComposioStatusRoute
+  ApiStudioLoginRoute: typeof ApiStudioLoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronPublishRoute: typeof ApiCronPublishRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiComposioStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/studio/login': {
+      id: '/api/studio/login'
+      path: '/api/studio/login'
+      fullPath: '/api/studio/login'
+      preLoaderRoute: typeof ApiStudioLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -264,6 +284,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   ApiHealthzRoute: ApiHealthzRoute,
   ApiComposioStatusRoute: ApiComposioStatusRoute,
+  ApiStudioLoginRoute: ApiStudioLoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronPublishRoute: ApiCronPublishRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,

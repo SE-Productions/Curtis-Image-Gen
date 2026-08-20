@@ -1,16 +1,33 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authClient, authEnabled } from "@/lib/auth/client";
-import { STUDIO_EMAIL, STUDIO_NAME } from "@/lib/auth/email-password";
+import { authEnabled } from "@/lib/auth/client";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
+async function studioLogin(password: string) {
+  const res = await fetch("/api/studio/login", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    let message = "Wrong password.";
+    try {
+      const body = (await res.json()) as { error?: string };
+      if (body.error) message = body.error;
+    } catch {
+      /* keep default */
+    }
+    throw new Error(message);
+  }
+}
+
 function Login() {
-  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -20,32 +37,10 @@ function Login() {
     setError(null);
     setBusy(true);
     try {
-      if (password !== "1234") {
-        setError("Wrong password.");
-        return;
-      }
-      const signedIn = await authClient.signIn.email({
-        email: STUDIO_EMAIL,
-        password,
-      });
-      if (!signedIn.error) {
-        navigate({ to: "/" });
-        return;
-      }
-
-      const created = await authClient.signUp.email({
-        email: STUDIO_EMAIL,
-        password,
-        name: STUDIO_NAME,
-      });
-      if (created.error) {
-        setError("Wrong password.");
-        return;
-      }
-      navigate({ to: "/" });
-    } catch {
-      setError("Could not sign in.");
-    } finally {
+      await studioLogin(password);
+      window.location.assign("/settings");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sign in.");
       setBusy(false);
     }
   }
