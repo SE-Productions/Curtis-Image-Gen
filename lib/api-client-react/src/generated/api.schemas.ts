@@ -489,6 +489,7 @@ export interface ErrorResponse {
  * Studio is locked
  */
 export type StudioLockedResponse = ErrorResponse;
+
 export type GetContentPlanParams = {
 /**
  * @pattern ^\d{4}-\d{2}-\d{2}$

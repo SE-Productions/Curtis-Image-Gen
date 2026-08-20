@@ -4,6 +4,7 @@ import {
   getGetInstagramPublishingStatusQueryKey,
   getGetStudioCapabilitiesQueryKey,
   getGetStudioSessionQueryKey,
+  type InstagramPublishingStatus,
   useBeginInstagramConnection,
   useCreateStudioSession,
   useDisconnectInstagramAccount,
@@ -58,9 +59,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
+const instagramAuthorizationPollMs = 3_000;
+const instagramAuthorizationTimeoutMs = 2 * 60 * 1_000;
+
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const [authorizationStarted, setAuthorizationStarted] = useState(false);
+  const [authorizationStartedAt, setAuthorizationStartedAt] = useState<
+    number | null
+  >(() =>
+    new URLSearchParams(window.location.search).get("instagram") === "connected"
+      ? Date.now()
+      : null,
+  );
   const [accessPassword, setAccessPassword] = useState("");
 
   const { data: studioSession, isLoading: sessionLoading } =
@@ -109,21 +119,50 @@ export default function SettingsPage() {
   const disconnectMutation = useDisconnectInstagramAccount();
 
   useEffect(() => {
-    if (!authorizationStarted) return;
-    const interval = window.setInterval(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("instagram") !== "connected") return;
+    url.searchParams.delete("instagram");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (authorizationStartedAt == null) return;
+    const refresh = () => {
       queryClient.invalidateQueries({
         queryKey: getGetInstagramPublishingStatusQueryKey(),
       });
-    }, 3000);
-    return () => window.clearInterval(interval);
-  }, [authorizationStarted, queryClient]);
+    };
+    refresh();
+    const interval = window.setInterval(() => {
+      refresh();
+    }, instagramAuthorizationPollMs);
+    const elapsed = Date.now() - authorizationStartedAt;
+    const timeout = window.setTimeout(
+      () => {
+        setAuthorizationStartedAt(null);
+        toast.message("Instagram authorization is still incomplete.", {
+          description:
+            "Finish the authorization tab, then use Refresh to check again.",
+        });
+      },
+      Math.max(0, instagramAuthorizationTimeoutMs - elapsed),
+    );
+    return () => {
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  }, [authorizationStartedAt, queryClient]);
 
   useEffect(() => {
-    if (authorizationStarted && status?.connected) {
-      setAuthorizationStarted(false);
+    if (authorizationStartedAt != null && status?.connected) {
+      setAuthorizationStartedAt(null);
       toast.success("Instagram connected");
     }
-  }, [authorizationStarted, status?.connected]);
+  }, [authorizationStartedAt, status?.connected]);
 
   const handleUnlock = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,24 +171,24 @@ export default function SettingsPage() {
   };
 
   const handleConnect = () => {
+    const authorizationWindow = window.open("about:blank", "_blank");
+    if (!authorizationWindow) {
+      toast.error("Allow pop-ups to connect Instagram.");
+      return;
+    }
+    authorizationWindow.opener = null;
+
     connectMutation.mutate(undefined, {
       onSuccess: (connection) => {
-        const authorizationWindow = window.open(
-          connection.authorizationUrl,
-          "_blank",
-          "noopener,noreferrer",
-        );
-        if (!authorizationWindow) {
-          toast.error("Allow pop-ups to connect Instagram.");
-          return;
-        }
-        setAuthorizationStarted(true);
+        authorizationWindow.location.replace(connection.authorizationUrl);
+        setAuthorizationStartedAt(Date.now());
         toast.message("Complete Instagram authorization in the new tab.");
       },
       onError: (error: any) => {
+        authorizationWindow.close();
         toast.error("Could not start Instagram connection", {
           description:
-            error?.response?.data?.error ??
+            error?.data?.error ??
             "Check the protected Composio configuration and try again.",
         });
       },
@@ -159,7 +198,21 @@ export default function SettingsPage() {
   const handleDisconnect = () => {
     disconnectMutation.mutate(undefined, {
       onSuccess: () => {
-        setAuthorizationStarted(false);
+        setAuthorizationStartedAt(null);
+        queryClient.setQueryData<InstagramPublishingStatus>(
+          getGetInstagramPublishingStatusQueryKey(),
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  available: false,
+                  connected: false,
+                  connectionStatus: "disconnected",
+                  accountLabel: null,
+                  updatedAt: null,
+                }
+              : current,
+        );
         queryClient.invalidateQueries({
           queryKey: getGetInstagramPublishingStatusQueryKey(),
         });
@@ -168,7 +221,7 @@ export default function SettingsPage() {
       onError: (error: any) => {
         toast.error("Could not disconnect Instagram", {
           description:
-            error?.response?.data?.error ?? "Please try again in a moment.",
+            error?.data?.error ?? "Please try again in a moment.",
         });
       },
     });
@@ -288,7 +341,7 @@ export default function SettingsPage() {
                 </Alert>
               )}
 
-              {authorizationStarted && !status?.connected && (
+              {authorizationStartedAt != null && !status?.connected && (
                 <Alert>
                   <ExternalLink className="h-4 w-4" />
                   <AlertTitle>Authorization in progress</AlertTitle>
@@ -351,6 +404,7 @@ export default function SettingsPage() {
                     size="sm"
                     onClick={refreshStatus}
                     disabled={statusQuery.isFetching || !canLoadSettings}
+                    data-testid="button-instagram-settings-refresh"
                   >
                     <RefreshCw
                       className={`mr-2 h-4 w-4 ${
@@ -367,6 +421,7 @@ export default function SettingsPage() {
                           variant="destructive"
                           size="sm"
                           disabled={disconnectMutation.isPending}
+                          data-testid="button-instagram-settings-disconnect"
                         >
                           <Unplug className="mr-2 h-4 w-4" />
                           Disconnect
@@ -387,6 +442,7 @@ export default function SettingsPage() {
                           <AlertDialogAction
                             onClick={handleDisconnect}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            data-testid="button-instagram-settings-confirm-disconnect"
                           >
                             Disconnect account
                           </AlertDialogAction>
@@ -400,6 +456,7 @@ export default function SettingsPage() {
                       disabled={
                         !status?.configured || connectMutation.isPending
                       }
+                      data-testid="button-instagram-settings-connect"
                     >
                       {connectMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

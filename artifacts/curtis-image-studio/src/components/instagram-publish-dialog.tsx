@@ -23,6 +23,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+function apiErrorMessage(error: any, fallback: string): string {
+  return error?.data?.error ?? error?.response?.data?.error ?? error?.message ?? fallback;
+}
+
 interface InstagramPublishDialogProps {
   imageDataUrl: string;
   contentItemId?: string;
@@ -58,10 +62,12 @@ export function InstagramPublishDialog({
     data: status,
     isLoading: isLoadingStatus,
     isFetching: isFetchingStatus,
+    isError: isStatusError,
     refetch: refetchStatus,
   } = useGetInstagramPublishingStatus({
     query: {
       enabled: open,
+      retry: false,
       queryKey: getGetInstagramPublishingStatusQueryKey()
     }
   });
@@ -98,7 +104,7 @@ export function InstagramPublishDialog({
         toast.success("Caption generated!");
       },
       onError: (error: any) => {
-        const msg = error?.response?.data?.error || "Failed to generate caption.";
+        const msg = apiErrorMessage(error, "Failed to generate caption.");
         toast.error("Caption generation failed", { description: msg });
       }
     });
@@ -123,10 +129,10 @@ export function InstagramPublishDialog({
         }
       },
       onError: (error: any) => {
-        const msg = error?.response?.data?.error || error.message || "Failed to publish image.";
+        const msg = apiErrorMessage(error, "Failed to publish image.");
         
         // Handle 409 special case for deployment needed
-        if (error?.response?.status === 409) {
+        if (error?.status === 409 || error?.response?.status === 409) {
           setPublishError("Instagram requires the application to be publicly deployed before it can fetch the image. Publishing is unavailable in local development.");
         } else {
           setPublishError(msg);
@@ -174,6 +180,36 @@ export function InstagramPublishDialog({
                 Status: {publishStatus}
               </Badge>
             </div>
+          ) : isStatusError ? (
+            <Alert variant="destructive" data-testid="instagram-status-error">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Instagram status is unavailable</AlertTitle>
+              <AlertDescription className="space-y-4">
+                <p>
+                  Curtis could not verify the connected account, so publishing
+                  remains disabled.
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button asChild size="sm">
+                    <Link href="/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Open Settings
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refetchStatus()}
+                    disabled={isFetchingStatus}
+                  >
+                    {isFetchingStatus && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Try again
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
           ) : status?.connected !== true ? (
             <div className="flex flex-col gap-4 animate-in fade-in" data-testid="instagram-connection-flow">
               <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
@@ -234,7 +270,9 @@ export function InstagramPublishDialog({
                     />
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground flex justify-between items-center">
-                    <span>Account: {status?.accountType || "Connected"}</span>
+                    <span>
+                      Account: {status?.accountLabel || status?.accountType || "Connected"}
+                    </span>
                     <span className="flex items-center gap-1 text-green-600 dark:text-green-500">
                       <CheckCircle className="w-3 h-3" /> Ready
                     </span>
@@ -244,7 +282,7 @@ export function InstagramPublishDialog({
                 <div className="sm:col-span-3 flex flex-col">
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor="caption" className="text-sm font-medium">
-                      Caption (Optional)
+                      Caption
                     </label>
                     {context && (
                       <Button 
@@ -290,7 +328,7 @@ export function InstagramPublishDialog({
             </Button>
             <Button 
               onClick={handlePublish}
-              disabled={publishMutation.isPending}
+              disabled={publishMutation.isPending || !caption.trim()}
               className="gap-2 bg-pink-600 hover:bg-pink-700 text-white"
               data-testid="button-instagram-confirm-publish"
             >

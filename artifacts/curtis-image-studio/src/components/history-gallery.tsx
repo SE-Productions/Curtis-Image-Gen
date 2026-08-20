@@ -90,19 +90,16 @@ export function HistoryGallery({ items, isLoading, onDelete, onSelect }: History
                     aspectRatio: item.input.aspectRatio,
                   }}
                   trigger={
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="secondary"
-                          size="icon"
-                          className="h-8 w-8 rounded-full shadow-md bg-pink-100 hover:bg-pink-200 text-pink-600 dark:bg-pink-900/30 dark:hover:bg-pink-900/50 dark:text-pink-500 border-0"
-                          data-testid={`button-instagram-history-${item.id}`}
-                        >
-                          <Instagram className="w-4 h-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Publish to Instagram</TooltipContent>
-                    </Tooltip>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="h-8 w-8 rounded-full shadow-md bg-pink-100 hover:bg-pink-200 text-pink-600 dark:bg-pink-900/30 dark:hover:bg-pink-900/50 dark:text-pink-500 border-0"
+                      aria-label="Publish to Instagram"
+                      title="Publish to Instagram"
+                      data-testid={`button-instagram-history-${item.id}`}
+                    >
+                      <Instagram className="w-4 h-4" />
+                    </Button>
                   }
                 />
                 <VideoGenerateDialog

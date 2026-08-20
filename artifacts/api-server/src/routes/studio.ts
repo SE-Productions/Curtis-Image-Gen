@@ -68,6 +68,32 @@ async function listInstagramConnections() {
   });
 }
 
+type InstagramConnectedAccount = Awaited<
+  ReturnType<typeof listInstagramConnections>
+>["items"][number];
+
+function selectInstagramConnection(
+  accounts: InstagramConnectedAccount[],
+): InstagramConnectedAccount | undefined {
+  return (
+    accounts.find(
+      (account) => account.status === "ACTIVE" && !account.isDisabled,
+    ) ??
+    accounts.find(
+      (account) =>
+        account.status === "INITIALIZING" || account.status === "INITIATED",
+    ) ??
+    accounts.find((account) =>
+      ["FAILED", "EXPIRED", "INACTIVE", "REVOKED"].includes(account.status),
+    )
+  );
+}
+
+function safeInstagramAccountLabel(alias: string | null | undefined): string | null {
+  const label = alias?.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  return label ? label.slice(0, 100) : null;
+}
+
 function instagramConnectionStatus(
   configured: boolean,
   accounts: Awaited<ReturnType<typeof listInstagramConnections>>["items"] = [],
@@ -84,30 +110,26 @@ function instagramConnectionStatus(
     };
   }
 
-  const active = accounts.find(
-    (account) => account.status === "ACTIVE" && !account.isDisabled,
-  );
-  const connecting = accounts.find(
-    (account) =>
-      account.status === "INITIALIZING" || account.status === "INITIATED",
-  );
-  const attention = accounts.find((account) =>
-    ["FAILED", "EXPIRED", "INACTIVE", "REVOKED"].includes(account.status),
-  );
-  const current = active ?? connecting ?? attention;
+  const current = selectInstagramConnection(accounts);
+  const connected = current?.status === "ACTIVE" && !current.isDisabled;
+  const connecting =
+    current?.status === "INITIALIZING" || current?.status === "INITIATED";
+  const attention =
+    current != null &&
+    ["FAILED", "EXPIRED", "INACTIVE", "REVOKED"].includes(current.status);
 
   return {
-    available: Boolean(active),
+    available: connected,
     configured: true,
-    connected: Boolean(active),
-    connectionStatus: active
+    connected,
+    connectionStatus: connected
       ? ("connected" as const)
       : connecting
         ? ("connecting" as const)
         : attention
           ? ("attention" as const)
           : ("disconnected" as const),
-    accountLabel: current?.alias?.trim() || null,
+    accountLabel: safeInstagramAccountLabel(current?.alias),
     accountType: "Instagram Business or Creator account",
     updatedAt: current?.updatedAt ?? null,
   };
@@ -230,6 +252,33 @@ function getPublicAppUrl(req?: Request): string | null {
   const forwardedHost = req?.get("x-forwarded-host")?.split(",")[0]?.trim();
   if (forwardedProtocol === "https" && forwardedHost) {
     return `https://${forwardedHost}`;
+  }
+
+  return null;
+}
+
+function getTrustedAppOrigin(): string | null {
+  const candidates = [
+    process.env.PUBLIC_APP_URL?.trim(),
+    process.env.REPLIT_DOMAINS?.split(",")[0]?.trim(),
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const parsedUrl = new URL(
+        candidate.includes("://") ? candidate : `https://${candidate}`,
+      );
+      if (
+        parsedUrl.protocol === "https:" &&
+        !parsedUrl.username &&
+        !parsedUrl.password
+      ) {
+        return parsedUrl.origin;
+      }
+    } catch {
+      // Try the next server-controlled origin.
+    }
   }
 
   return null;
@@ -759,9 +808,36 @@ router.post(
   }
 
   try {
-    const connection = await getComposioClient().toolkits.authorize(
+    const trustedAppOrigin = getTrustedAppOrigin();
+    if (!trustedAppOrigin) {
+      res.status(503).json({
+        error:
+          "Instagram authorization requires a trusted public application URL.",
+      });
+      return;
+    }
+
+    const composio = getComposioClient();
+    const authConfigs = await composio.authConfigs.list({
+      toolkit: "instagram",
+      limit: 20,
+    });
+    const authConfig =
+      authConfigs.items[0] ??
+      (await composio.authConfigs.create("instagram", {
+        type: "use_composio_managed_auth",
+        name: "Curtis Instagram",
+      }));
+    const callbackUrl = new URL(
+      "/settings?instagram=connected",
+      trustedAppOrigin,
+    ).toString();
+    const connection = await composio.connectedAccounts.link(
       composioUserId,
-      "instagram",
+      authConfig.id,
+      {
+        callbackUrl,
+      },
     );
     if (!connection.redirectUrl) {
       throw new Error("Composio did not return an Instagram authorization link.");
@@ -791,11 +867,10 @@ router.delete(
 
     try {
       const { items } = await listInstagramConnections();
-      await Promise.all(
-        items.map((account) =>
-          getComposioClient().connectedAccounts.delete(account.id),
-        ),
-      );
+      const selectedAccount = selectInstagramConnection(items);
+      if (selectedAccount) {
+        await getComposioClient().connectedAccounts.delete(selectedAccount.id);
+      }
       res.sendStatus(204);
     } catch (error) {
       req.log.error({ err: error }, "Instagram account disconnect failed");

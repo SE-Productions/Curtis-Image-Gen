@@ -70,6 +70,7 @@ export const GetStudioSessionResponse = zod.object({
 export const createStudioSessionBodyPasswordMax = 200;
 
 
+
 export const CreateStudioSessionBody = zod.object({
   "password": zod.string().min(1).max(createStudioSessionBodyPasswordMax)
 })
@@ -110,6 +111,7 @@ export const createStudioSceneBodyPromptMax = 6000;
 export const createStudioSceneBodyImageDataUrlMax = 16000000;
 
 export const createStudioSceneBodyProviderMax = 200;
+
 
 
 export const CreateStudioSceneBody = zod.object({
@@ -159,6 +161,7 @@ export const generateStudioPostCopyBodyVisualDescriptionMax = 2000;
 export const generateStudioPostCopyBodyPromptMax = 6000;
 
 
+
 export const GenerateStudioPostCopyBody = zod.object({
   "title": zod.string().max(generateStudioPostCopyBodyTitleMax).optional(),
   "visualDescription": zod.string().max(generateStudioPostCopyBodyVisualDescriptionMax).optional(),
@@ -167,6 +170,7 @@ export const GenerateStudioPostCopyBody = zod.object({
 })
 
 export const generateStudioPostCopyResponseCaptionMax = 2200;
+
 
 
 export const GenerateStudioPostCopyResponse = zod.object({
@@ -262,6 +266,7 @@ export const publishStudioImageToInstagramBodyImageDataUrlMax = 16000000;
 export const publishStudioImageToInstagramBodyCaptionMax = 2200;
 
 
+
 export const PublishStudioImageToInstagramBody = zod.object({
   "imageDataUrl": zod.string().max(publishStudioImageToInstagramBodyImageDataUrlMax),
   "caption": zod.string().min(1).max(publishStudioImageToInstagramBodyCaptionMax),
@@ -305,6 +310,7 @@ export const updateCreatorDnaBodyThemesMax = 12;
 export const updateCreatorDnaBodyOffersMax = 2000;
 
 export const updateCreatorDnaBodyGoalsMax = 2000;
+
 
 
 export const UpdateCreatorDnaBody = zod.object({
@@ -383,6 +389,7 @@ export const generateContentPlanBodyWeekStartRegExp = new RegExp('^\\d{4}-\\d{2}
 export const generateContentPlanBodyBriefMax = 3000;
 
 
+
 export const GenerateContentPlanBody = zod.object({
   "weekStart": zod.string().regex(generateContentPlanBodyWeekStartRegExp),
   "brief": zod.string().min(1).max(generateContentPlanBodyBriefMax)
@@ -439,6 +446,7 @@ export const updateContentItemBodyConceptMax = 2000;
 export const updateContentItemBodyPromptMax = 6000;
 
 export const updateContentItemBodyCaptionMax = 2200;
+
 
 
 export const UpdateContentItemBody = zod.object({
@@ -551,6 +559,7 @@ export const RecordContentPublicationParams = zod.object({
 export const recordContentPublicationBodyFailureReasonMax = 1000;
 
 
+
 export const RecordContentPublicationBody = zod.object({
   "status": zod.enum(['published', 'failed']),
   "postId": zod.string().optional(),
@@ -558,4 +567,3 @@ export const RecordContentPublicationBody = zod.object({
 })
 
 export const RecordContentPublicationResponse = zod.void()
-
