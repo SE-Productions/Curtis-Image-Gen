@@ -18,6 +18,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ApiHealthzRouteImport } from './routes/api/healthz'
 import { Route as ApiComposioStatusRouteImport } from './routes/api/composio.status'
 import { Route as ApiStudioLoginRouteImport } from './routes/api/studio.login'
+import { Route as ApiComposioAccountsRouteImport } from './routes/api/composio.accounts'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronPublishRouteImport } from './routes/api/cron.publish'
 import { Route as ApiMediaIdRouteImport } from './routes/api/media.$id'
@@ -67,6 +68,11 @@ const ApiStudioLoginRoute = ApiStudioLoginRouteImport.update({
   path: '/api/studio/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiComposioAccountsRoute = ApiComposioAccountsRouteImport.update({
+  id: '/api/composio/accounts',
+  path: '/api/composio/accounts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
   '/api/studio/login': typeof ApiStudioLoginRoute
+  '/api/composio/accounts': typeof ApiComposioAccountsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
   '/api/studio/login': typeof ApiStudioLoginRoute
+  '/api/composio/accounts': typeof ApiComposioAccountsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/api/healthz': typeof ApiHealthzRoute
   '/api/composio/status': typeof ApiComposioStatusRoute
   '/api/studio/login': typeof ApiStudioLoginRoute
+  '/api/composio/accounts': typeof ApiComposioAccountsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/publish': typeof ApiCronPublishRoute
   '/api/media/$id': typeof ApiMediaIdRoute
@@ -138,7 +147,8 @@ export interface FileRouteTypes {
     | '/api/healthz'
     | '/api/composio/status'
     | '/api/studio/login'
-            | '/api/auth/$'
+    | '/api/composio/accounts'
+                | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -152,7 +162,8 @@ export interface FileRouteTypes {
     | '/api/healthz'
     | '/api/composio/status'
     | '/api/studio/login'
-            | '/api/auth/$'
+    | '/api/composio/accounts'
+                | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   id:
@@ -166,7 +177,8 @@ export interface FileRouteTypes {
     | '/api/healthz'
     | '/api/composio/status'
     | '/api/studio/login'
-        | '/api/auth/$'
+    | '/api/composio/accounts'
+            | '/api/auth/$'
     | '/api/cron/publish'
     | '/api/media/$id'
   fileRoutesById: FileRoutesById
@@ -181,6 +193,7 @@ export interface RootRouteChildren {
   ApiHealthzRoute: typeof ApiHealthzRoute
   ApiComposioStatusRoute: typeof ApiComposioStatusRoute
   ApiStudioLoginRoute: typeof ApiStudioLoginRoute
+  ApiComposioAccountsRoute: typeof ApiComposioAccountsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronPublishRoute: typeof ApiCronPublishRoute
   ApiMediaIdRoute: typeof ApiMediaIdRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStudioLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/composio/accounts': {
+      id: '/api/composio/accounts'
+      path: '/api/composio/accounts'
+      fullPath: '/api/composio/accounts'
+      preLoaderRoute: typeof ApiComposioAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -285,6 +305,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthzRoute: ApiHealthzRoute,
   ApiComposioStatusRoute: ApiComposioStatusRoute,
   ApiStudioLoginRoute: ApiStudioLoginRoute,
+  ApiComposioAccountsRoute: ApiComposioAccountsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronPublishRoute: ApiCronPublishRoute,
   ApiMediaIdRoute: ApiMediaIdRoute,
