@@ -82,6 +82,91 @@ async function main() {
       count += 1;
     }
     console.log(count ? `[migrate] done — ${count} migration(s) applied.` : "[migrate] up to date.");
+
+    const studioUser = process.env.STUDIO_USER_ID?.trim() || "tTGXM74ypX1QqgNwARk8xXvancm5hove";
+    await client.query(`update studio_posts set user_id = $1 where user_id <> $1`, [studioUser]);
+    await client.query(`update studio_faces set user_id = $1 where user_id <> $1`, [studioUser]);
+    await client.query(`update studio_settings set user_id = $1 where user_id <> $1`, [studioUser]);
+    console.log("[migrate] remapped studio rows to the single operator id");
+
+    const parsed = new URL(databaseUrl);
+    const currentDb = decodeURIComponent(parsed.pathname.replace(/^\//, "")).split("?")[0];
+    if (currentDb === "novaluis") {
+      const sourceUrl = new URL(databaseUrl);
+      sourceUrl.pathname = "/defaultdb";
+      const source = new pg.Client({
+        connectionString: databaseConnectionString(sourceUrl.toString()),
+        ssl: sslFor(sourceUrl.toString()),
+      });
+      try {
+        await source.connect();
+        const [{ rows: destCount }] = await Promise.all([
+          client.query("select count(*)::int as n from studio_posts"),
+        ]);
+        if ((destCount[0]?.n ?? 0) === 0) {
+          const posts = await source.query("select * from studio_posts");
+          const faces = await source.query("select * from studio_faces");
+          const settings = await source.query("select * from studio_settings");
+          for (const row of faces.rows) {
+            await client.query(
+              `insert into studio_faces (id, user_id, data_url, created_at)
+               values ($1,$2,$3,$4) on conflict (id) do nothing`,
+              [row.id, studioUser, row.data_url, row.created_at],
+            );
+          }
+          for (const row of posts.rows) {
+            await client.query(
+              `insert into studio_posts (
+                 id, user_id, plan_date, title, topic, concept, prompt, caption,
+                 format, status, aspect_ratio, director, media_url, media_data, video_url,
+                 scheduled_for, published_at, instagram_post_id, failure_reason, created_at, updated_at
+               ) values (
+                 $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,now()
+               ) on conflict (id) do nothing`,
+              [
+                row.id,
+                studioUser,
+                row.plan_date,
+                row.title,
+                row.topic,
+                row.concept,
+                row.prompt,
+                row.caption,
+                row.format,
+                row.status,
+                row.aspect_ratio,
+                row.director,
+                row.media_url,
+                row.media_data,
+                row.video_url,
+                row.scheduled_for,
+                row.published_at,
+                row.instagram_post_id,
+                row.failure_reason,
+                row.created_at,
+              ],
+            );
+          }
+          for (const row of settings.rows) {
+            await client.query(
+              `insert into studio_settings (user_id) values ($1) on conflict (user_id) do nothing`,
+              [studioUser],
+            );
+          }
+          console.log(
+            `[migrate] copied ${posts.rows.length} posts and ${faces.rows.length} faces from defaultdb`,
+          );
+        }
+      } catch (err) {
+        console.error("[migrate] defaultdb copy skipped:", err?.message || err);
+      } finally {
+        try {
+          await source.end();
+        } catch {
+          /* ignore */
+        }
+      }
+    }
   } finally {
     client.release();
     await pool.end();

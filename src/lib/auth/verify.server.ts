@@ -80,19 +80,6 @@ export async function getSessionUser(
  *   read/write everyone's rows.
  * - Auth disabled + no database -> the shared dev user id.
  */
-export async function requireUserId(bearerToken?: string): Promise<string> {
-  if (!authConfigured) {
-    if (databaseConfigured) {
-      throw new Error(
-        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
-          "refusing to fall back to the shared dev user against a real database.",
-      );
-    }
-    return DEV_USER_ID;
-  }
-  const user = await getSessionUser(bearerToken);
-  if (user) return user.id;
-  // Studio is a single-operator app. Keep settings and calendar usable
-  // without the password gate.
+export async function requireUserId(_bearerToken?: string): Promise<string> {
   return process.env.STUDIO_USER_ID?.trim() || "tTGXM74ypX1QqgNwARk8xXvancm5hove";
 }
