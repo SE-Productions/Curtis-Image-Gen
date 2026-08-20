@@ -38,10 +38,18 @@ function StatusDot({ on }: { on: boolean }) {
       aria-hidden
       className={
         on
-          ? "inline-block size-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.25)]"
-          : "inline-block size-2.5 shrink-0 rounded-full bg-zinc-300"
+          ? "inline-block size-2.5 shrink-0 rounded-full bg-ok shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-ok)_28%,transparent)]"
+          : "inline-block size-2.5 shrink-0 rounded-full bg-secondary"
       }
     />
+  );
+}
+
+function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: string }) {
+  return (
+    <Label htmlFor={htmlFor} className="text-[10px] uppercase tracking-[0.16em] text-muted">
+      {children}
+    </Label>
   );
 }
 
@@ -69,12 +77,12 @@ function KeyRow({
   saving: boolean;
 }) {
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
+    <div className="space-y-3 rounded-xl border border-border bg-bg p-4">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={id} className="inline-flex items-center gap-2">
+        <div className="inline-flex items-center gap-2">
           <StatusDot on={saved} />
-          {label}
-        </Label>
+          <p className="font-serif text-lg leading-none">{label}</p>
+        </div>
         <Badge tone={saved ? "ok" : "muted"}>{saved ? "Active" : "Empty"}</Badge>
       </div>
       <p className="text-sm text-muted">{hint}</p>
@@ -135,7 +143,7 @@ function SettingsPage() {
 
   if (!settings) {
     return (
-      <AppShell eyebrow="Settings">
+      <AppShell eyebrow="Studio settings">
         <p className="text-sm text-muted">Loading…</p>
       </AppShell>
     );
@@ -194,18 +202,24 @@ function SettingsPage() {
     null;
 
   return (
-    <AppShell eyebrow="Settings" nvidia={caps?.nvidia}>
-      <h2 className="mb-6 font-serif text-3xl tracking-tight">Studio</h2>
-      <div className="space-y-4">
+    <AppShell eyebrow="Studio settings" nvidia={caps?.nvidia}>
+      <div className="mb-6">
+        <h2 className="font-serif text-3xl tracking-tight">The vault</h2>
+        <p className="mt-1 text-sm text-muted">
+          Keys, Instagram, and the daily drop — same workspace as Create.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
         <Card>
           <CardBody className="space-y-4">
             <div className="flex items-center gap-2">
               <KeyRound className="size-4 text-primary" />
-              <h3 className="font-serif text-xl">AI keys</h3>
+              <h3 className="font-serif text-2xl">AI keys</h3>
             </div>
             <p className="text-sm text-muted">
-              Add or replace the keys this studio uses. Env keys still work as fallback until you
-              save one here.
+              Add or replace NVIDIA, xAI, and Composio. Env keys stay as fallback until you save one
+              here.
             </p>
             <KeyRow
               id="nvkey"
@@ -247,10 +261,10 @@ function SettingsPage() {
         </Card>
 
         <Card>
-          <CardBody className="space-y-3">
-            <div className="flex items-center gap-2">
+          <CardBody className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
               <Instagram className="size-4 text-primary" />
-              <h3 className="font-serif text-xl">Composio Instagram</h3>
+              <h3 className="font-serif text-2xl">Instagram</h3>
               {composio?.connected ? (
                 <Badge tone="ok">
                   <CheckCircle2 className="size-3" />
@@ -261,15 +275,14 @@ function SettingsPage() {
               )}
             </div>
             <p className="text-sm text-muted">
-              Pick which Instagram account to use, connect a new one, or delete a linked account.
-              Connecting opens Composio — sign in as the SE account.
+              Connect through Composio only. Pick the SE account, or delete a leftover connection.
             </p>
             {composio?.error ? <p className="text-sm text-primary">{composio.error}</p> : null}
             <div className="space-y-1.5">
-              <Label htmlFor="ig-account">Active account</Label>
+              <FieldLabel htmlFor="ig-account">Active account</FieldLabel>
               <select
                 id="ig-account"
-                className="flex h-10 w-full rounded-md border border-border bg-bg px-3 text-sm"
+                className="flex h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 value={settings.composioAccountId}
                 onChange={(event) => void persist({ composioAccountId: event.target.value })}
               >
@@ -284,10 +297,9 @@ function SettingsPage() {
               </select>
             </div>
             {selectedAccount ? (
-              <p className="text-sm text-muted">
-                Using {selectedAccount.username ? `@${selectedAccount.username}` : selectedAccount.id}{" "}
-                ({selectedAccount.status}
-                {selectedAccount.accountType ? ` · ${selectedAccount.accountType}` : ""}).
+              <p className="inline-flex items-center gap-2 text-sm text-muted">
+                <StatusDot on={selectedAccount.status === "ACTIVE" && !selectedAccount.disabled} />
+                Using {selectedAccount.username ? `@${selectedAccount.username}` : selectedAccount.id}
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2">
@@ -309,76 +321,53 @@ function SettingsPage() {
                 {connecting ? "Opening Composio…" : "Connect Instagram"}
               </Button>
               <Button variant="outline" onClick={() => void refreshComposio()}>
-                Refresh accounts
+                Refresh
               </Button>
-              {settings.composioAccountId ? (
-                <Button
-                  variant="outline"
-                  disabled={saving}
-                  onClick={async () => {
-                    const id = settings.composioAccountId;
-                    const res = await fetch(`/api/composio/accounts?id=${encodeURIComponent(id)}`, {
-                      method: "DELETE",
-                    });
-                    const body = (await res.json()) as { ok: boolean; error?: string };
-                    if (!body.ok) {
-                      toast.error(body.error || "Could not remove account");
-                      return;
-                    }
-                    await persist({ composioAccountId: "" });
-                    await refreshComposio();
-                    toast.success("Instagram account removed");
-                  }}
-                >
-                  <Trash2 className="size-4" />
-                  Remove selected
-                </Button>
-              ) : null}
             </div>
             {composio?.accounts?.length ? (
-              <ul className="space-y-2 text-sm">
+              <ul className="space-y-2">
                 {composio.accounts.map((account) => {
                   const active = account.status === "ACTIVE" && !account.disabled;
                   return (
-                  <li
-                    key={account.id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2"
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <StatusDot on={active} />
-                      <span className="truncate">
-                        {account.username ? `@${account.username.replace(/^@/, "")}` : account.id}
+                    <li
+                      key={account.id}
+                      className="flex flex-col gap-3 rounded-xl border border-border bg-bg p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <StatusDot on={active} />
+                        <span className="truncate text-sm">
+                          {account.username ? `@${account.username.replace(/^@/, "")}` : account.id}
+                        </span>
                       </span>
-                    </span>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Badge tone={active ? "ok" : "muted"}>
-                        {account.disabled ? "Disabled" : account.status}
-                      </Badge>
-                      <Button
-                        variant="outline"
-                        className="h-8 px-2"
-                        onClick={async () => {
-                          const res = await fetch(
-                            `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
-                            { method: "DELETE" },
-                          );
-                          const body = (await res.json()) as { ok: boolean; error?: string };
-                          if (!body.ok) {
-                            toast.error(body.error || "Could not delete account");
-                            return;
-                          }
-                          if (settings.composioAccountId === account.id) {
-                            await persist({ composioAccountId: "" });
-                          }
-                          await refreshComposio();
-                          toast.success("Instagram account deleted");
-                        }}
-                      >
-                        <Trash2 className="size-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </li>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge tone={active ? "ok" : "muted"}>
+                          {account.disabled ? "Disabled" : account.status}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          className="h-9"
+                          onClick={async () => {
+                            const res = await fetch(
+                              `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
+                              { method: "DELETE" },
+                            );
+                            const body = (await res.json()) as { ok: boolean; error?: string };
+                            if (!body.ok) {
+                              toast.error(body.error || "Could not delete account");
+                              return;
+                            }
+                            if (settings.composioAccountId === account.id) {
+                              await persist({ composioAccountId: "" });
+                            }
+                            await refreshComposio();
+                            toast.success("Instagram account deleted");
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </Button>
+                      </div>
+                    </li>
                   );
                 })}
               </ul>
@@ -389,47 +378,49 @@ function SettingsPage() {
             )}
           </CardBody>
         </Card>
+      </div>
 
-        <Card>
-          <CardBody className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-serif text-xl">Daily drop</h3>
-              <Switch
-                checked={settings.autoPublish}
-                onCheckedChange={(autoPublish) => void persist({ autoPublish })}
+      <Card className="mt-4">
+        <CardBody className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-serif text-2xl">Daily drop</h3>
+              <p className="mt-1 text-sm text-muted">
+                Post exactly once per day. Later items wait their turn.
+              </p>
+            </div>
+            <Switch
+              checked={settings.autoPublish}
+              onCheckedChange={(autoPublish) => void persist({ autoPublish })}
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="hour">Hour</FieldLabel>
+              <Input
+                id="hour"
+                type="number"
+                min={0}
+                max={23}
+                value={settings.postHour}
+                onChange={(e) => setSettings({ ...settings, postHour: Number(e.target.value) })}
+                onBlur={() => void persist({ postHour: settings.postHour })}
               />
             </div>
-            <p className="text-sm text-muted">
-              Post exactly once per day at the time below. Later items wait their turn.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="hour">Hour</Label>
-                <Input
-                  id="hour"
-                  type="number"
-                  min={0}
-                  max={23}
-                  value={settings.postHour}
-                  onChange={(e) => setSettings({ ...settings, postHour: Number(e.target.value) })}
-                  onBlur={() => void persist({ postHour: settings.postHour })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="minute">Minute</Label>
-                <Input
-                  id="minute"
-                  type="number"
-                  min={0}
-                  max={59}
-                  value={settings.postMinute}
-                  onChange={(e) => setSettings({ ...settings, postMinute: Number(e.target.value) })}
-                  onBlur={() => void persist({ postMinute: settings.postMinute })}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="minute">Minute</FieldLabel>
+              <Input
+                id="minute"
+                type="number"
+                min={0}
+                max={59}
+                value={settings.postMinute}
+                onChange={(e) => setSettings({ ...settings, postMinute: Number(e.target.value) })}
+                onBlur={() => void persist({ postMinute: settings.postMinute })}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="tz">Timezone</Label>
+              <FieldLabel htmlFor="tz">Timezone</FieldLabel>
               <Input
                 id="tz"
                 value={settings.timezone}
@@ -437,9 +428,9 @@ function SettingsPage() {
                 onBlur={() => void persist({ timezone: settings.timezone })}
               />
             </div>
-          </CardBody>
-        </Card>
-      </div>
+          </div>
+        </CardBody>
+      </Card>
     </AppShell>
   );
 }
