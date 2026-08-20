@@ -308,15 +308,50 @@ export async function removeBusinessInstagramAccount(): Promise<{
 
 
 export async function listInstagramAuthConfigs(): Promise<Array<{ id: string; name: string }>> {
-  const { status, body } = await composioFetch("/api/v3.1/auth_configs?toolkit_slug=instagram&limit=50");
-  const rec = status >= 200 && status < 300 ? asRecord(body) : asRecord((await composioFetch("/api/v3/auth_configs?toolkit_slug=instagram&limit=50")).body);
-  const items = Array.isArray(rec.items) ? rec.items : [];
-  return items
-    .map((item) => {
-      const row = asRecord(item);
-      return { id: String(row.id ?? ""), name: String(row.name ?? row.id ?? "") };
-    })
-    .filter((item) => item.id);
+  const paths = [
+    "/api/v3.1/auth_configs?toolkit_slug=instagram&limit=50",
+    "/api/v3/auth_configs?toolkit_slug=instagram&limit=50",
+    "/api/v3.1/auth_configs?limit=50",
+    "/api/v3/auth_configs?limit=50",
+  ];
+  for (const path of paths) {
+    const { status, body } = await composioFetch(path);
+    if (status < 200 || status >= 300) continue;
+    const rec = asRecord(body);
+    const items = Array.isArray(rec.items) ? rec.items : [];
+    const configs = items
+      .map((item) => {
+        const row = asRecord(item);
+        const toolkit = asRecord(row.toolkit);
+        const slug = String(toolkit.slug ?? row.toolkit ?? "").toLowerCase();
+        if (slug && !slug.includes("instagram")) return null;
+        return { id: String(row.id ?? ""), name: String(row.name ?? row.id ?? "") };
+      })
+      .filter((item): item is { id: string; name: string } => Boolean(item?.id));
+    if (configs.length) return configs;
+  }
+  return [];
+}
+
+async function ensureInstagramAuthConfig(): Promise<string | null> {
+  const existing = await listInstagramAuthConfigs();
+  if (existing[0]?.id) return existing[0].id;
+  const payload = {
+    toolkit: { slug: "instagram" },
+    auth_config: { type: "use_composio_managed_auth" },
+  };
+  for (const path of ["/api/v3.1/auth_configs", "/api/v3/auth_configs"]) {
+    const { status, body } = await composioFetch(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    if (status < 200 || status >= 300) continue;
+    const rec = asRecord(body);
+    const nested = asRecord(rec.auth_config);
+    const id = String(rec.id ?? nested.id ?? "");
+    if (id) return id;
+  }
+  return null;
 }
 
 export async function createInstagramConnectLink(): Promise<{
@@ -324,32 +359,77 @@ export async function createInstagramConnectLink(): Promise<{
   url: string | null;
   error: string | null;
 }> {
-  const configs = await listInstagramAuthConfigs();
-  const authConfigId = configs[0]?.id;
+  const authConfigId = await ensureInstagramAuthConfig();
   if (!authConfigId) {
     return { ok: false, url: null, error: "No Instagram auth config on this Composio project" };
   }
-  const payload = {
-    auth_config_id: authConfigId,
-    user_id: process.env.COMPOSIO_USER_ID?.trim() || "nova-luis",
-    alias: "se-se",
-    callback_url: "https://curtis-image-studio-6eadq.ondigitalocean.app/settings",
-  };
-  for (const path of ["/api/v3.1/connected_accounts/link", "/api/v3/connected_accounts/link"]) {
-    const { status, body } = await composioFetch(path, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    const rec = asRecord(body);
-    const url =
-      (typeof rec.redirect_url === "string" && rec.redirect_url) ||
-      (typeof rec.redirectUrl === "string" && rec.redirectUrl) ||
-      null;
-    if (status >= 200 && status < 300 && url) {
-      return { ok: true, url, error: null };
+  const userId = process.env.COMPOSIO_USER_ID?.trim() || "nova-luis";
+  const payloads = [
+    {
+      auth_config_id: authConfigId,
+      user_id: userId,
+      callback_url: "https://curtis-image-studio-6eadq.ondigitalocean.app/settings",
+    },
+    {
+      auth_config_id: authConfigId,
+      user_id: userId,
+    },
+  ];
+  let lastError = "Could not create Composio Instagram connect link";
+  for (const payload of payloads) {
+    for (const path of ["/api/v3.1/connected_accounts/link", "/api/v3/connected_accounts/link"]) {
+      const { status, body } = await composioFetch(path, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      const rec = asRecord(body);
+      const url =
+        (typeof rec.redirect_url === "string" && rec.redirect_url) ||
+        (typeof rec.redirectUrl === "string" && rec.redirectUrl) ||
+        (typeof rec.redirect_uri === "string" && rec.redirect_uri) ||
+        null;
+      if (status >= 200 && status < 300 && url) {
+        return { ok: true, url, error: null };
+      }
+      lastError =
+        (typeof rec.error === "string" && rec.error) ||
+        (typeof rec.message === "string" && rec.message) ||
+        lastError;
     }
   }
-  return { ok: false, url: null, error: "Could not create Composio Instagram connect link" };
+  return { ok: false, url: null, error: lastError };
+}
+
+export async function wipeInstagramAccounts(): Promise<{
+  ok: boolean;
+  removed: string[];
+  remaining: ComposioAccount[];
+  error: string | null;
+}> {
+  const known = [
+    "ca_rgXRo0lgfpNV",
+    "ca_tUnsnnKqqqZs",
+    "ca_DqWHy1_WGMLh",
+    "ca_YxY60wywgb0x",
+    "ca_PbLV8eXmC19W",
+    "ca_72WYXL9cb_hL",
+    "ca_F1Ojp8HhwA0B",
+  ];
+  const status = await getComposioStatus();
+  const ids = [...new Set([...status.accounts.map((account) => account.id), ...known])];
+  const removed: string[] = [];
+  for (const id of ids) {
+    const result = await deleteComposioAccount(id);
+    if (result.ok) removed.push(id);
+  }
+  const after = await getComposioStatus();
+  const remaining = after.accounts.filter((account) => !removed.includes(account.id));
+  return {
+    ok: remaining.length === 0,
+    removed,
+    remaining,
+    error: remaining.length ? "Some Instagram accounts could not be removed" : null,
+  };
 }
 
 export async function executeComposioTool(
