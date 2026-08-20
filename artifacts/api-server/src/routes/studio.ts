@@ -956,6 +956,7 @@ router.post(
       {
         userId: composioUserId,
         arguments: {
+          ig_user_id: "me",
           image_file: stagedImage,
           caption: parsed.data.caption,
         },
@@ -971,7 +972,10 @@ router.post(
       "INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH",
       {
         userId: composioUserId,
-        arguments: { creation_id: containerId },
+        arguments: {
+          ig_user_id: "me",
+          creation_id: containerId,
+        },
         dangerouslySkipVersionCheck: true,
       },
     );
