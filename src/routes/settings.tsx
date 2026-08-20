@@ -145,6 +145,7 @@ function SettingsPage() {
     }
   }
 
+  // Load studio state + Composio status on mount
   useEffect(() => {
     void getStudioState().then((s) => {
       setSettings(s.settings);
@@ -216,6 +217,21 @@ function SettingsPage() {
       setSaving(false);
     }
   }
+
+  // Auto-populate composioAccountId: if DB has none but Composio has an active
+  // Instagram account, save it so publishPost can find it without manual fiddling.
+  useEffect(() => {
+    if (!settings || !composio) return;
+    if (settings.composioAccountId) return; // already saved — nothing to do
+    const active = composio.accounts.find(
+      (a) => a.status === "ACTIVE" && !a.disabled,
+    );
+    if (!active) return;
+    void persist({ composioAccountId: active.id }).then(() => {
+      toast.success(`Instagram (${active.username ?? active.id}) saved`);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, composio]);
 
   const selectedAccount =
     composio?.accounts.find((account) => account.id === settings.composioAccountId) ??
@@ -304,7 +320,7 @@ function SettingsPage() {
               <select
                 id="ig-account"
                 className="flex h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                value={settings.composioAccountId}
+                value={selectedAccount?.id ?? settings.composioAccountId}
                 onChange={(event) => void persist({ composioAccountId: event.target.value })}
               >
                 <option value="">Select an Instagram account</option>
