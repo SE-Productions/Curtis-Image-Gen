@@ -325,48 +325,49 @@ function SettingsPage() {
               </Button>
             </div>
             {composio?.accounts?.length ? (
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {composio.accounts.map((account) => {
                   const active = account.status === "ACTIVE" && !account.disabled;
+                  const label = account.username
+                    ? `@${account.username.replace(/^@/, "")}`
+                    : account.id;
                   return (
                     <li
                       key={account.id}
-                      className="flex flex-col gap-3 rounded-xl border border-border bg-bg p-3 sm:flex-row sm:items-center sm:justify-between"
+                      className="space-y-2 rounded-xl border border-border bg-bg p-3"
                     >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <StatusDot on={active} />
-                        <span className="truncate text-sm">
-                          {account.username ? `@${account.username.replace(/^@/, "")}` : account.id}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <StatusDot on={active} />
+                          <span className="truncate text-sm font-medium">{label}</span>
                         </span>
-                      </span>
-                      <div className="flex shrink-0 items-center gap-2">
                         <Badge tone={active ? "ok" : "muted"}>
                           {account.disabled ? "Disabled" : account.status}
                         </Badge>
-                        <Button
-                          variant="outline"
-                          className="h-9"
-                          onClick={async () => {
-                            const res = await fetch(
-                              `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
-                              { method: "DELETE" },
-                            );
-                            const body = (await res.json()) as { ok: boolean; error?: string };
-                            if (!body.ok) {
-                              toast.error(body.error || "Could not delete account");
-                              return;
-                            }
-                            if (settings.composioAccountId === account.id) {
-                              await persist({ composioAccountId: "" });
-                            }
-                            await refreshComposio();
-                            toast.success("Instagram account deleted");
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                          Delete
-                        </Button>
                       </div>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        data-testid={`delete-ig-${account.id}`}
+                        onClick={async () => {
+                          const res = await fetch(
+                            `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
+                            { method: "DELETE" },
+                          );
+                          const body = (await res.json()) as { ok: boolean; error?: string };
+                          if (!body.ok) {
+                            toast.error(body.error || "Could not delete account");
+                            return;
+                          }
+                          if (settings.composioAccountId === account.id) {
+                            await persist({ composioAccountId: "" });
+                          }
+                          await refreshComposio();
+                          toast.success("Instagram account deleted");
+                        }}
+                      >
+                        Delete
+                      </Button>
                     </li>
                   );
                 })}
