@@ -115,13 +115,34 @@ function SettingsPage() {
   const [composioKey, setComposioKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [composio, setComposio] = useState<ComposioStatus | null>(null);
 
-  async function refreshComposio() {
-    const res = await fetch("/api/composio/status");
-    const body = (await res.json()) as ComposioStatus;
-    setComposio(body);
-    return body;
+  async function refreshComposio(showToast = false) {
+    setRefreshing(true);
+    try {
+      const res = await fetch(`/api/composio/status?ts=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
+      if (!res.ok) throw new Error(`Composio status ${res.status}`);
+      const body = (await res.json()) as ComposioStatus;
+      setComposio(body);
+      if (showToast) {
+        toast.success(
+          body.accounts.length
+            ? `${body.accounts.length} Instagram account${body.accounts.length === 1 ? "" : "s"}`
+            : "No Instagram accounts on this key",
+        );
+      }
+      return body;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not refresh Composio";
+      if (showToast) toast.error(message);
+      throw error;
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   useEffect(() => {
@@ -320,8 +341,12 @@ function SettingsPage() {
               >
                 {connecting ? "Opening Composio…" : "Connect Instagram"}
               </Button>
-              <Button variant="outline" onClick={() => void refreshComposio()}>
-                Refresh
+              <Button
+                variant="outline"
+                disabled={refreshing}
+                onClick={() => void refreshComposio(true)}
+              >
+                {refreshing ? "Refreshing…" : "Refresh"}
               </Button>
             </div>
             {composio?.accounts?.length ? (
