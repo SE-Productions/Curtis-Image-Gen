@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { deletePost, getStudioState, renderPost, renderPostVideo } from "@/lib/functions";
 import { useStudioUi } from "@/lib/studio-store";
 import type { StudioPost } from "@/lib/types";
@@ -12,7 +11,6 @@ import type { StudioPost } from "@/lib/types";
 export const Route = createFileRoute("/planner")({ component: PlannerPage });
 
 function PlannerPage() {
-  const { user, isPending } = useCurrentUserState();
   const [posts, setPosts] = useState<StudioPost[]>([]);
   const [nvidia, setNvidia] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -25,11 +23,10 @@ function PlannerPage() {
   }
 
   useEffect(() => {
-    if (isPending || !user) return;
     void refresh().catch((error) =>
       toast.error(error instanceof Error ? error.message : "Could not load planner"),
     );
-  }, [isPending, user]);
+  }, []);
 
   return (
     <AppShell eyebrow="Content Planner" nvidia={nvidia}>

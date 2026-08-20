@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   clearFace,
   fillCalendar,
@@ -25,7 +24,6 @@ export const Route = createFileRoute("/")({ component: CreatePage });
 
 function CreatePage() {
   const navigate = useNavigate();
-  const { user, isPending } = useCurrentUserState();
   const fileRef = useRef<HTMLInputElement>(null);
   const [caps, setCaps] = useState<StudioCapabilities | null>(null);
   const [posts, setPosts] = useState<StudioPost[]>([]);
@@ -47,7 +45,6 @@ function CreatePage() {
     void getCapabilities()
       .then(setCaps)
       .catch(() => {});
-    if (isPending || !user) return;
     void getStudioState()
       .then((state) => {
         setCaps(state.capabilities);
@@ -67,14 +64,10 @@ function CreatePage() {
         }
       })
       .catch(() => {});
-  }, [isPending, user, setDays, setFacePreview, setFormat]);
+  }, [setDays, setFacePreview, setFormat]);
 
   async function onPick(file: File | undefined) {
     if (!file) return;
-    if (!user) {
-      navigate({ to: "/login" });
-      return;
-    }
     if (!["image/jpeg", "image/png"].includes(file.type)) {
       toast.error("Use a JPEG or PNG");
       return;
@@ -100,10 +93,6 @@ function CreatePage() {
   }
 
   async function onFill() {
-    if (!user) {
-      navigate({ to: "/login" });
-      return;
-    }
     if (!hasFace && !facePreview) {
       toast.error("Add a face photo first");
       return;
@@ -156,7 +145,7 @@ function CreatePage() {
                   onClick={() => {
                     setFacePreview(null);
                     setHasFace(false);
-                    if (user) void clearFace();
+                    void clearFace();
                   }}
                 >
                   Remove

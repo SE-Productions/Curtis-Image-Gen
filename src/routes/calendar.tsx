@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { PostCard } from "@/components/post-card";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   deletePost,
   getStudioState,
@@ -19,7 +18,6 @@ import type { StudioPost } from "@/lib/types";
 export const Route = createFileRoute("/calendar")({ component: CalendarPage });
 
 function CalendarPage() {
-  const { user, isPending } = useCurrentUserState();
   const [posts, setPosts] = useState<StudioPost[]>([]);
   const [nvidia, setNvidia] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -34,11 +32,6 @@ function CalendarPage() {
   }
 
   useEffect(() => {
-    if (isPending) return;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
     void refresh()
       .catch((error) =>
         toast.error(error instanceof Error ? error.message : "Could not load calendar"),
@@ -47,10 +40,10 @@ function CalendarPage() {
     void runDuePublishes({ data: { publicOrigin: window.location.origin } }).then((r) => {
       if (r.published) void refresh();
     });
-  }, [isPending, user]);
+  }, []);
 
   useEffect(() => {
-    if (!user || rendering.current) return;
+    if (rendering.current) return;
     const next = posts.find((p) => p.status === "idea");
     if (!next) return;
     rendering.current = true;
@@ -64,7 +57,7 @@ function CalendarPage() {
         rendering.current = false;
         setBusyId(null);
       });
-  }, [posts, user]);
+  }, [posts]);
 
   const grouped = posts.reduce<Record<string, StudioPost[]>>((acc, post) => {
     (acc[post.planDate] ??= []).push(post);

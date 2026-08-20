@@ -5,19 +5,16 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getStudioState } from "@/lib/functions";
 import type { StudioPost } from "@/lib/types";
 
 export const Route = createFileRoute("/library")({ component: LibraryPage });
 
 function LibraryPage() {
-  const { user, isPending } = useCurrentUserState();
   const [posts, setPosts] = useState<StudioPost[]>([]);
   const [nvidia, setNvidia] = useState(false);
 
   useEffect(() => {
-    if (isPending || !user) return;
     void getStudioState()
       .then((s) => {
         setPosts(s.posts.filter((p) => p.hasMedia));
@@ -26,7 +23,7 @@ function LibraryPage() {
       .catch((error) =>
         toast.error(error instanceof Error ? error.message : "Could not load library"),
       );
-  }, [isPending, user]);
+  }, []);
 
   return (
     <AppShell eyebrow="Library" nvidia={nvidia}>

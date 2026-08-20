@@ -11,8 +11,6 @@ import {
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui/badge";
-import { UserButton } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useStudioUi } from "@/lib/studio-store";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +35,6 @@ export function AppShell({
   wide?: boolean;
   nvidia?: boolean;
 }) {
-  const { user, isPending } = useCurrentUserState();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const facePreview = useStudioUi((s) => s.facePreview);
   const locked = Boolean(facePreview);
@@ -96,18 +93,6 @@ export function AppShell({
                 );
               })}
             </nav>
-            {isPending ? (
-              <div className="h-8 w-16 animate-pulse rounded-full bg-secondary" />
-            ) : user ? (
-              <UserButton />
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-fg"
-              >
-                
-              </Link>
-            )}
           </div>
         </div>
       </header>
