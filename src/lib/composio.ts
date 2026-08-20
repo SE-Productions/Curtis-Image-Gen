@@ -107,7 +107,7 @@ function unwrapData(body: unknown): Record<string, unknown> {
 }
 
 async function inspectAccount(account: ComposioAccount): Promise<ComposioAccount> {
-  // Inspect every account so we can find SE even if expired.
+  if (account.status !== "ACTIVE") return account;
   const payload = {
     connected_account_id: account.id,
     user_id: account.userId || "default",
@@ -166,6 +166,8 @@ export async function getComposioStatus(): Promise<ComposioStatus> {
   const attempts = [
     "/api/v3.1/connected_accounts?toolkit_slugs=instagram&limit=50",
     "/api/v3/connected_accounts?toolkit_slugs=instagram&limit=50",
+    "/api/v3.1/connected_accounts?limit=50",
+    "/api/v3/connected_accounts?limit=50",
   ];
 
   let lastError = "Could not reach Composio";
@@ -194,7 +196,13 @@ export async function getComposioStatus(): Promise<ComposioStatus> {
       : Array.isArray(rec.connected_accounts)
         ? rec.connected_accounts
         : [];
-    const mapped = list.map(mapAccount).filter((a): a is ComposioAccount => Boolean(a)).filter(isInstagram);
+    const mapped = list
+      .map(mapAccount)
+      .filter((a): a is ComposioAccount => Boolean(a))
+      .filter((account) => !account.toolkit || isInstagram(account));
+    if (!mapped.length && path.includes("toolkit_slugs")) {
+      continue;
+    }
     const accounts = [];
     for (const account of mapped) {
       accounts.push(await inspectAccount(account));
