@@ -101,7 +101,7 @@ function unwrapData(body: unknown): Record<string, unknown> {
 }
 
 async function inspectAccount(account: ComposioAccount): Promise<ComposioAccount> {
-  if (account.status !== "ACTIVE") return account;
+  // Inspect every account so we can find SE even if expired.
   const payload = {
     connected_account_id: account.id,
     user_id: account.userId || "default",
@@ -284,4 +284,50 @@ export async function removeBusinessInstagramAccount(): Promise<{
     remaining: after.accounts,
     error: null,
   };
+}
+
+
+export async function listInstagramAuthConfigs(): Promise<Array<{ id: string; name: string }>> {
+  const { status, body } = await composioFetch("/api/v3.1/auth_configs?toolkit_slug=instagram&limit=50");
+  const rec = status >= 200 && status < 300 ? asRecord(body) : asRecord((await composioFetch("/api/v3/auth_configs?toolkit_slug=instagram&limit=50")).body);
+  const items = Array.isArray(rec.items) ? rec.items : [];
+  return items
+    .map((item) => {
+      const row = asRecord(item);
+      return { id: String(row.id ?? ""), name: String(row.name ?? row.id ?? "") };
+    })
+    .filter((item) => item.id);
+}
+
+export async function createInstagramConnectLink(): Promise<{
+  ok: boolean;
+  url: string | null;
+  error: string | null;
+}> {
+  const configs = await listInstagramAuthConfigs();
+  const authConfigId = configs[0]?.id;
+  if (!authConfigId) {
+    return { ok: false, url: null, error: "No Instagram auth config on this Composio project" };
+  }
+  const payload = {
+    auth_config_id: authConfigId,
+    user_id: "curtis-image-studio",
+    alias: "se-se",
+    callback_url: "https://curtis-image-studio-6eadq.ondigitalocean.app/settings",
+  };
+  for (const path of ["/api/v3.1/connected_accounts/link", "/api/v3/connected_accounts/link"]) {
+    const { status, body } = await composioFetch(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const rec = asRecord(body);
+    const url =
+      (typeof rec.redirect_url === "string" && rec.redirect_url) ||
+      (typeof rec.redirectUrl === "string" && rec.redirectUrl) ||
+      null;
+    if (status >= 200 && status < 300 && url) {
+      return { ok: true, url, error: null };
+    }
+  }
+  return { ok: false, url: null, error: "Could not create Composio Instagram connect link" };
 }
