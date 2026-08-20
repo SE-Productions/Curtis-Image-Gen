@@ -9,7 +9,8 @@ import {
   writeCalendarPlan,
 } from "@/lib/ai";
 import { dateRange, todayInZone, zonedDateTime } from "@/lib/dates";
-import { publishToInstagram, verifyInstagramToken } from "@/lib/instagram";
+import { verifyInstagramToken } from "@/lib/instagram";
+import { publishViaComposio } from "@/lib/composio";
 import { loadVaultKeys } from "@/lib/vault";
 import { setRuntimeXaiKey } from "@/lib/ai";
 import type { PostFormat, PostStatus, StudioPost, StudioSettings } from "@/lib/types";
@@ -537,13 +538,13 @@ async function publishOne(
   if (post.status === "published") return mapPost(post);
 
   const settingsRows = await sql<{
-    instagram_user_id: string | null;
-    instagram_token: string | null;
+    composio_account_id: string | null;
     timezone: string;
-  }>`select instagram_user_id, instagram_token, timezone from studio_settings where user_id = ${userId}`;
+  }>`select composio_account_id, timezone from studio_settings where user_id = ${userId}`;
   const settings = settingsRows[0];
-  if (!settings?.instagram_user_id || !settings.instagram_token) {
-    throw new Error("Connect Instagram in Settings before publishing");
+  let connectedAccountId = settings?.composio_account_id?.trim() || "";
+  if (!connectedAccountId) {
+    throw new Error("Connect Instagram through Composio in Settings before publishing");
   }
 
   const today = todayInZone(settings.timezone || "America/New_York");
@@ -571,9 +572,8 @@ async function publishOne(
       await sql`update studio_posts set video_url = ${videoUrl} where id = ${post.id}`;
     }
     const imageUrl = await publicMediaUrl(post, origin);
-    const igId = await publishToInstagram({
-      igUserId: settings.instagram_user_id,
-      token: settings.instagram_token,
+    const igId = await publishViaComposio({
+      connectedAccountId,
       imageUrl,
       videoUrl,
       caption: post.caption,
@@ -616,7 +616,7 @@ export const runDuePublishes = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     const settings = await loadSettings(context.userId);
-    if (!settings.autoPublish || !settings.hasToken) {
+    if (!settings.autoPublish || !settings.composioAccountId) {
       return { published: 0 };
     }
     const today = todayInZone(settings.timezone);

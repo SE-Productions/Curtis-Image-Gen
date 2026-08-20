@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Cpu, Instagram, KeyRound, Trash2, Unplug } from "lucide-react";
+import { CheckCircle2, Instagram, KeyRound, Trash2, Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -89,8 +89,6 @@ function SettingsPage() {
   const [nvidiaKey, setNvidiaKey] = useState("");
   const [xaiKey, setXaiKey] = useState("");
   const [composioKey, setComposioKey] = useState("");
-  const [token, setToken] = useState("");
-  const [userId, setUserId] = useState("");
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [composio, setComposio] = useState<ComposioStatus | null>(null);
@@ -106,7 +104,6 @@ function SettingsPage() {
     void getStudioState().then((s) => {
       setSettings(s.settings);
       setCaps(s.capabilities);
-      setUserId(s.settings.instagramUserId);
     });
     void refreshComposio().catch(() =>
       setComposio({
@@ -132,7 +129,6 @@ function SettingsPage() {
 
   async function persist(
     patch: Partial<StudioSettings> & {
-      instagramToken?: string;
       nvidiaApiKey?: string;
       xaiApiKey?: string;
       composioApiKey?: string;
@@ -140,15 +136,12 @@ function SettingsPage() {
       clearNvidia?: boolean;
       clearXai?: boolean;
       clearComposio?: boolean;
-      clearInstagram?: boolean;
     },
   ) {
     setSaving(true);
     try {
       const next = await saveSettings({
         data: {
-          instagramUserId: patch.instagramUserId ?? userId,
-          instagramToken: patch.instagramToken,
           nvidiaApiKey: patch.nvidiaApiKey,
           xaiApiKey: patch.xaiApiKey,
           composioApiKey: patch.composioApiKey,
@@ -156,7 +149,6 @@ function SettingsPage() {
           clearNvidia: patch.clearNvidia,
           clearXai: patch.clearXai,
           clearComposio: patch.clearComposio,
-          clearInstagram: patch.clearInstagram,
           autoPublish: patch.autoPublish ?? current.autoPublish,
           postHour: patch.postHour ?? current.postHour,
           postMinute: patch.postMinute ?? current.postMinute,
@@ -167,7 +159,6 @@ function SettingsPage() {
       setNvidiaKey("");
       setXaiKey("");
       setComposioKey("");
-      setToken("");
       toast.success("Settings saved");
       const state = await getStudioState();
       setCaps(state.capabilities);
@@ -421,57 +412,6 @@ function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
                 onBlur={() => void persist({ timezone: settings.timezone })}
               />
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Cpu className="size-4 text-nvidia" />
-              <h3 className="font-serif text-xl">Graph API (optional)</h3>
-              {settings.hasToken ? (
-                <Badge tone="ok">{settings.instagramUsername || "Token saved"}</Badge>
-              ) : (
-                <Badge>Not used</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted">
-              Only needed if you post without Composio. Composio is the primary path.
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="igid">Instagram user id</Label>
-              <Input id="igid" value={userId} onChange={(e) => setUserId(e.target.value)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="token">Access token</Label>
-              <Input
-                id="token"
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder={settings.hasToken ? "Token saved · paste to replace" : "EAAG…"}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                disabled={saving}
-                onClick={() =>
-                  void persist({
-                    instagramUserId: userId,
-                    instagramToken: token || undefined,
-                  })
-                }
-              >
-                Save token
-              </Button>
-              {settings.hasToken ? (
-                <Button variant="outline" onClick={() => void persist({ clearInstagram: true })}>
-                  <Trash2 className="size-4" />
-                  Remove
-                </Button>
-              ) : null}
             </div>
           </CardBody>
         </Card>

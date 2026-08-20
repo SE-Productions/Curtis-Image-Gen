@@ -337,3 +337,103 @@ export async function createInstagramConnectLink(): Promise<{
   }
   return { ok: false, url: null, error: "Could not create Composio Instagram connect link" };
 }
+
+export async function executeComposioTool(
+  slug: string,
+  connectedAccountId: string,
+  args: Record<string, unknown>,
+  userId = "curtis-image-studio",
+): Promise<Record<string, unknown>> {
+  const payload = {
+    connected_account_id: connectedAccountId,
+    user_id: userId,
+    arguments: args,
+  };
+  const attempts = [
+    `/api/v3/tools/execute/${slug}`,
+    `/api/v3.1/tools/execute/${slug}`,
+  ];
+  let lastError = `Could not execute ${slug}`;
+  for (const path of attempts) {
+    const { status, body } = await composioFetch(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const rec = asRecord(body);
+    if (status >= 200 && status < 300) {
+      return unwrapData(body);
+    }
+    lastError =
+      (typeof rec.error === "string" && rec.error) ||
+      (typeof rec.message === "string" && rec.message) ||
+      lastError;
+  }
+  throw new Error(lastError);
+}
+
+function pickId(data: Record<string, unknown>): string | null {
+  return pickString(data, ["id", "creation_id", "ig_id", "user_id", "instagram_id", "media_id"]);
+}
+
+export async function publishViaComposio(input: {
+  connectedAccountId: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  caption: string;
+  format: string;
+}): Promise<string> {
+  const isReel = input.format === "reel" && Boolean(input.videoUrl);
+  const mediaUrl = isReel ? input.videoUrl : input.imageUrl;
+  if (!mediaUrl) throw new Error("No public media URL to publish");
+  if (!mediaUrl.startsWith("https://")) {
+    throw new Error("Instagram requires a public HTTPS media URL");
+  }
+
+  const profile = await executeComposioTool("INSTAGRAM_GET_USER_INFO", input.connectedAccountId, {});
+  const igUserId = pickId(profile);
+  if (!igUserId) throw new Error("Composio Instagram account has no user id");
+
+  const containerArgs: Record<string, unknown> = {
+    ig_user_id: igUserId,
+    caption: input.caption.slice(0, 2200),
+  };
+  if (isReel) {
+    containerArgs.video_url = mediaUrl;
+    containerArgs.media_type = "REELS";
+  } else {
+    containerArgs.image_url = mediaUrl;
+  }
+
+  let container: Record<string, unknown>;
+  try {
+    container = await executeComposioTool(
+      "INSTAGRAM_POST_IG_USER_MEDIA",
+      input.connectedAccountId,
+      containerArgs,
+    );
+  } catch {
+    container = await executeComposioTool(
+      "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+      input.connectedAccountId,
+      containerArgs,
+    );
+  }
+  const creationId = pickId(container);
+  if (!creationId) throw new Error("Composio did not return a media container id");
+
+  let published: Record<string, unknown>;
+  try {
+    published = await executeComposioTool(
+      "INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH",
+      input.connectedAccountId,
+      { ig_user_id: igUserId, creation_id: creationId },
+    );
+  } catch {
+    published = await executeComposioTool(
+      "INSTAGRAM_CREATE_POST",
+      input.connectedAccountId,
+      { ig_user_id: igUserId, creation_id: creationId },
+    );
+  }
+  return pickId(published) || creationId;
+}
