@@ -115,7 +115,7 @@ async function inspectAccount(account: ComposioAccount): Promise<ComposioAccount
   if (account.status !== "ACTIVE") return account;
   const payload = {
     connected_account_id: account.id,
-    user_id: account.userId || "default",
+    user_id: account.userId || "nova-luis",
     arguments: {},
   };
   const attempts = [
@@ -436,7 +436,9 @@ export async function executeComposioTool(
   slug: string,
   connectedAccountId: string,
   args: Record<string, unknown>,
-  userId = "curtis-image-studio",
+  // The IG account was connected with user_id "nova-luis" — must match or
+  // Composio returns error 1812 (ConnectedAccountEntityIdMismatch).
+  userId = "nova-luis",
 ): Promise<Record<string, unknown>> {
   const payload = {
     connected_account_id: connectedAccountId,
