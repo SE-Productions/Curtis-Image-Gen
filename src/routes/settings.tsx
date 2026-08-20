@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Instagram, KeyRound, Trash2, Unplug } from "lucide-react";
+import { CheckCircle2, Instagram, KeyRound, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +32,19 @@ type ComposioStatus = {
   error: string | null;
 };
 
+function StatusDot({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={
+        on
+          ? "inline-block size-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.25)]"
+          : "inline-block size-2.5 shrink-0 rounded-full bg-zinc-300"
+      }
+    />
+  );
+}
+
 function KeyRow({
   id,
   label,
@@ -58,8 +71,11 @@ function KeyRow({
   return (
     <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={id}>{label}</Label>
-        <Badge tone={saved ? "ok" : "muted"}>{saved ? "Saved" : "Empty"}</Badge>
+        <Label htmlFor={id} className="inline-flex items-center gap-2">
+          <StatusDot on={saved} />
+          {label}
+        </Label>
+        <Badge tone={saved ? "ok" : "muted"}>{saved ? "Active" : "Empty"}</Badge>
       </div>
       <p className="text-sm text-muted">{hint}</p>
       <Input
@@ -76,7 +92,7 @@ function KeyRow({
         </Button>
         <Button variant="outline" disabled={saving || !saved} onClick={onDelete}>
           <Trash2 className="size-4" />
-          Remove
+          Delete
         </Button>
       </div>
     </div>
@@ -321,21 +337,26 @@ function SettingsPage() {
             </div>
             {composio?.accounts?.length ? (
               <ul className="space-y-2 text-sm">
-                {composio.accounts.map((account) => (
+                {composio.accounts.map((account) => {
+                  const active = account.status === "ACTIVE" && !account.disabled;
+                  return (
                   <li
                     key={account.id}
                     className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2"
                   >
-                    <span>
-                      {account.username ? `@${account.username.replace(/^@/, "")}` : account.id.slice(0, 14)}
+                    <span className="flex min-w-0 items-center gap-2">
+                      <StatusDot on={active} />
+                      <span className="truncate">
+                        {account.username ? `@${account.username.replace(/^@/, "")}` : account.id}
+                      </span>
                     </span>
-                    <div className="flex items-center gap-2">
-                      <Badge tone={account.status === "ACTIVE" && !account.disabled ? "ok" : "muted"}>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Badge tone={active ? "ok" : "muted"}>
                         {account.disabled ? "Disabled" : account.status}
                       </Badge>
-                      <button
-                        type="button"
-                        className="text-muted hover:text-primary"
+                      <Button
+                        variant="outline"
+                        className="h-8 px-2"
                         onClick={async () => {
                           const res = await fetch(
                             `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
@@ -343,20 +364,23 @@ function SettingsPage() {
                           );
                           const body = (await res.json()) as { ok: boolean; error?: string };
                           if (!body.ok) {
-                            toast.error(body.error || "Could not remove account");
+                            toast.error(body.error || "Could not delete account");
                             return;
                           }
                           if (settings.composioAccountId === account.id) {
                             await persist({ composioAccountId: "" });
                           }
                           await refreshComposio();
+                          toast.success("Instagram account deleted");
                         }}
                       >
-                        <Unplug className="size-4" />
-                      </button>
+                        <Trash2 className="size-4" />
+                        Delete
+                      </Button>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-sm text-muted">
