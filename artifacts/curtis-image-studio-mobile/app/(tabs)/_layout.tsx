@@ -2,30 +2,8 @@ import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
-
-// IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
-// NativeTabs intentionally does NOT use custom design tokens — liquid glass
-// is a system-level appearance provided by iOS and cannot be overridden.
-// Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
-function NativeTabLayout() {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'camera', selected: 'camera.fill' }} />
-        <Label>Create</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="render">
-        <Icon sf={{ default: 'film', selected: 'film.fill' }} />
-        <Label>Render</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
-  );
-}
 
 function ClassicTabLayout() {
   const colors = useColors();
@@ -33,29 +11,41 @@ function ClassicTabLayout() {
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
+  const isAndroid = Platform.OS === 'android';
+
+  // Harmonized: black pill toolbar on top of beige bg (screenshot-aligned)
+  const toolbarBg = isAndroid ? '#1A1A1A' : colors.background;
+  const toolbarActiveBg = '#D95F3B'; // terracotta pill
+  const toolbarActiveFg = '#FFFFFF';
+  const toolbarInactiveFg = '#64748B'; // slate
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        headerShown: true,
+        // Android: show app bar with brand name (matches screenshot)
+        headerShown: isAndroid,
+        headerTitle: 'Curtis Image Studio',
+        headerStyle: { backgroundColor: '#000000' },
+        headerTintColor: '#FFFFFF',
+        headerTitleStyle: {
+          fontFamily: 'InstrumentSerif_400Regular',
+          fontSize: 17,
+          color: '#FFFFFF',
+        },
+        tabBarActiveTintColor: toolbarActiveFg,
+        tabBarInactiveTintColor: toolbarInactiveFg,
         tabBarStyle: {
           position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
+          backgroundColor: toolbarBg,
+          borderTopWidth: 0,
           elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          // Black pill container matching screenshot's pill toolbar
+          height: isWeb ? 88 : 72,
+          paddingBottom: isAndroid ? 12 : 6,
+          paddingTop: 8,
         },
         tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
+          isWeb ? (
             <View
               style={[
                 StyleSheet.absoluteFill,
@@ -69,11 +59,11 @@ function ClassicTabLayout() {
         name="index"
         options={{
           title: 'Create',
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
+          tabBarIcon: ({ color, focused }) =>
+            isIOS && !focused ? (
               <SymbolView name="camera" tintColor={color} size={24} />
             ) : (
-              <Feather name="camera" size={22} color={color} />
+              <Feather name={focused ? 'camera' : 'camera'} size={22} color={color} />
             ),
         }}
       />
@@ -94,8 +84,5 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
   return <ClassicTabLayout />;
 }

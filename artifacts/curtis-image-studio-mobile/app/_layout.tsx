@@ -11,6 +11,11 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
+import {
+  InstrumentSerif_400Regular,
+  InstrumentSerif_400Regular_Italic,
+  useFonts as useSerif,
+} from '@expo-google-fonts/instrument-serif';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { setBaseUrl } from '@workspace/api-client-react';
@@ -31,12 +36,18 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [interLoaded, interError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [serifLoaded, serifError] = useSerif({
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
+  });
+  const fontsLoaded = interLoaded && serifLoaded;
+  const fontError = interError || serifError;
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

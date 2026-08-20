@@ -69,14 +69,14 @@ export default function CreateScreen() {
           <Text style={[styles.brand, { color: colors.primary }]}>CURTIS</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Image Studio</Text>
         </View>
-        <View style={[styles.headerMark, { backgroundColor: colors.secondary }]}>
+        <View style={[styles.headerMark, { backgroundColor: colors.accent }]}>
           <Feather name="aperture" size={21} color={colors.primary} />
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeading}>
-          <Text style={[styles.sectionLabel, { color: colors.foreground }]}>FACE REFERENCE</Text>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>FACE REFERENCE</Text>
           {referenceImage && (
             <Pressable
               accessibilityRole="button"
@@ -115,12 +115,15 @@ export default function CreateScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.foreground }]}>SCENE DIRECTION</Text>
+        <Text style={[styles.sectionHeadingSerif, { color: colors.foreground }]}>Scene Direction</Text>
+        <Text style={[styles.sectionSubtitle, { color: colors.mutedForeground }]}>
+          Describe the scene, style, setting, wardrobe, and mood.
+        </Text>
         <TextInput
           multiline
           value={prompt}
           onChangeText={setPrompt}
-          placeholder="Describe the scene, style, setting, wardrobe, and mood..."
+          placeholder="A moody coastal evening, overcast sky, golden hour light..."
           placeholderTextColor={colors.mutedForeground}
           textAlignVertical="top"
           style={[
@@ -131,7 +134,7 @@ export default function CreateScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionLabel, { color: colors.foreground }]}>COMPOSITION</Text>
+        <Text style={[styles.sectionHeadingSerif, { color: colors.foreground }]}>Composition</Text>
         <Segment
           value={aspectRatio}
           onChange={setAspectRatio}
@@ -144,12 +147,7 @@ export default function CreateScreen() {
       </View>
 
       <View style={styles.section}>
-        <View style={styles.fidelityHeading}>
-          <Text style={[styles.sectionLabel, { color: colors.foreground }]}>FIDELITY</Text>
-          <Text style={[styles.fidelityHint, { color: colors.mutedForeground }]}>
-            {fidelity === 'high' ? 'Closest face match' : 'Faster iteration'}
-          </Text>
-        </View>
+        <Text style={[styles.sectionHeadingSerif, { color: colors.foreground }]}>Fidelity</Text>
         <Segment
           value={fidelity}
           onChange={setFidelity}
@@ -180,7 +178,7 @@ export default function CreateScreen() {
       {currentImage && (
         <View style={styles.resultSection}>
           <View style={styles.sectionHeading}>
-            <Text style={[styles.sectionLabel, { color: colors.foreground }]}>LATEST SCENE</Text>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LATEST SCENE</Text>
             <Pressable
               accessibilityRole="button"
               testID="save-image-button"
@@ -206,14 +204,26 @@ export default function CreateScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, gap: 22, paddingHorizontal: 20 },
+  content: { flexGrow: 1, gap: 20, paddingHorizontal: 20 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  brand: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.5 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -0.8, marginTop: 2 },
+  brand: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 2.5, color: '#D95F3B' },
+  title: { fontFamily: 'InstrumentSerif_400Regular', fontSize: 28, letterSpacing: -0.5, marginTop: 1, color: '#1A1A1A' },
   headerMark: { alignItems: 'center', borderRadius: 18, height: 48, justifyContent: 'center', width: 48 },
-  section: { gap: 10 },
+  section: { gap: 8 },
   sectionHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.2 },
+  sectionHeadingSerif: {
+    fontFamily: 'InstrumentSerif_400Regular',
+    fontSize: 22,
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  sectionLabel: { fontFamily: 'Inter_500Medium', fontSize: 11, letterSpacing: 0.8 },
   smallAction: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   uploadCard: {
     alignItems: 'center',
@@ -226,7 +236,7 @@ const styles = StyleSheet.create({
   },
   uploadIcon: { alignItems: 'center', borderRadius: 14, height: 46, justifyContent: 'center', width: 46 },
   uploadCopy: { flex: 1, gap: 3 },
-  uploadTitle: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  uploadTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   uploadText: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   promptInput: {
     borderRadius: 16,
@@ -237,8 +247,6 @@ const styles = StyleSheet.create({
     minHeight: 130,
     padding: 14,
   },
-  fidelityHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  fidelityHint: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   loading: {
     alignItems: 'center',
     borderRadius: 14,

@@ -58,11 +58,11 @@ export default function RenderScreen() {
       ]}
     >
       <View style={styles.header}>
-        <View style={[styles.headerIcon, { backgroundColor: colors.secondary }]}>
+        <View style={[styles.headerIcon, { backgroundColor: colors.accent }]}>
           <Feather name="film" size={19} color={colors.primary} />
         </View>
         <View style={styles.headerCopy}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>MOTION STUDIO</Text>
+          <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>MOTION STUDIO</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Bring it to life</Text>
         </View>
       </View>
@@ -80,7 +80,7 @@ export default function RenderScreen() {
           <ImagePreview uri={currentImage.imageDataUrl} caption="Current generated scene" />
 
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.foreground }]}>FORMAT</Text>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>FORMAT</Text>
             <Segment
               value={format}
               onChange={setFormat}
@@ -92,7 +92,7 @@ export default function RenderScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.foreground }]}>MOTION DIRECTION</Text>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MOTION DIRECTION</Text>
             <TextInput
               multiline
               value={motionPrompt}
@@ -165,7 +165,7 @@ export default function RenderScreen() {
 const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
-    gap: 22,
+    gap: 20,
     paddingHorizontal: 20,
   },
   header: {
@@ -181,8 +181,8 @@ const styles = StyleSheet.create({
     width: 46,
   },
   headerCopy: { gap: 2 },
-  eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.3 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: -0.6 },
+  eyebrow: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 1.4, color: '#64748B' },
+  title: { fontFamily: 'InstrumentSerif_400Regular', fontSize: 26, letterSpacing: -0.4, color: '#1A1A1A' },
   emptyCard: {
     alignItems: 'center',
     borderRadius: 18,
@@ -192,10 +192,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 42,
   },
-  emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
+  emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 17 },
   emptyCopy: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center' },
-  section: { gap: 10 },
-  sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.2 },
+  section: { gap: 8 },
+  sectionLabel: { fontFamily: 'Inter_500Medium', fontSize: 11, letterSpacing: 0.8, color: '#64748B' },
   motionInput: {
     borderRadius: 14,
     borderWidth: 1,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   progressCopy: { flex: 1, gap: 3 },
-  progressTitle: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  progressTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   progressText: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 18 },
   doneCard: {
     alignItems: 'center',
