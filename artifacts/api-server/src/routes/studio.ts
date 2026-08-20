@@ -946,12 +946,17 @@ router.post(
     const assetId = createHostedAsset(imageDataUrl);
     const publicImageUrl = `${publicAppUrl}/api/studio/assets/${assetId}`;
     const composio = getComposioClient();
+    const stagedImage = await composio.files.upload({
+      file: publicImageUrl,
+      toolSlug: "INSTAGRAM_POST_IG_USER_MEDIA",
+      toolkitSlug: "instagram",
+    });
     const mediaContainer = await composio.tools.execute(
       "INSTAGRAM_POST_IG_USER_MEDIA",
       {
         userId: composioUserId,
         arguments: {
-          image_url: publicImageUrl,
+          image_url: stagedImage,
           caption: parsed.data.caption,
         },
         dangerouslySkipVersionCheck: true,
