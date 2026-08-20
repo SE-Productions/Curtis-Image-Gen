@@ -366,6 +366,12 @@ paths:
       operationId: beginInstagramConnection
       tags: [studio]
       summary: Start the Instagram account connection flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstagramConnectionInput"
       responses:
         "200":
           description: Instagram authorization link
@@ -1014,6 +1020,14 @@ components:
           type: string
         expiresAt:
           type: ["string", "null"]
+    InstagramConnectionInput:
+      type: object
+      required: [accountType]
+      properties:
+        accountType:
+          type: string
+          enum: [business, creator]
+          description: The professional Instagram account type the operator intends to authorize.
     InstagramPublishInput:
       type: object
       required: [imageDataUrl, caption]

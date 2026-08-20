@@ -6,6 +6,7 @@ import { Router, type IRouter, type Request } from "express";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { Composio } from "@composio/core";
 import {
+  BeginInstagramConnectionBody,
   CreateStudioSceneBody,
   CreateStudioSceneResponse,
   DeleteStudioSceneParams,
@@ -802,12 +803,22 @@ router.post(
   "/studio/instagram/connect",
   requireStudioSession,
   async (req, res): Promise<void> => {
+  const parsed = BeginInstagramConnectionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Choose whether you are connecting a Business or Creator account.",
+    });
+    return;
+  }
+
   if (!process.env.COMPOSIO_API_KEY) {
     res.status(503).json({ error: "Instagram publishing is not configured." });
     return;
   }
 
   try {
+    const accountTypeLabel =
+      parsed.data.accountType === "creator" ? "Creator" : "Business";
     const trustedAppOrigin = getTrustedAppOrigin();
     if (!trustedAppOrigin) {
       res.status(503).json({
@@ -826,7 +837,7 @@ router.post(
       authConfigs.items[0] ??
       (await composio.authConfigs.create("instagram", {
         type: "use_composio_managed_auth",
-        name: "Curtis Instagram",
+        name: `Curtis Instagram ${accountTypeLabel}`,
       }));
     const callbackUrl = new URL(
       "/settings?instagram=connected",

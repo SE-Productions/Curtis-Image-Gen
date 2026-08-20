@@ -246,6 +246,10 @@ export const GetStudioAssetResponse = zod.unknown()
 /**
  * @summary Start the Instagram account connection flow
  */
+export const BeginInstagramConnectionBody = zod.object({
+  "accountType": zod.enum(['business', 'creator']).describe('The professional Instagram account type the operator intends to authorize.')
+})
+
 export const BeginInstagramConnectionResponse = zod.object({
   "authorizationUrl": zod.string(),
   "expiresAt": zod.string().nullish()

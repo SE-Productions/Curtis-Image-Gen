@@ -33,6 +33,7 @@ import type {
   GetContentPlanParams,
   HealthStatus,
   InstagramConnection,
+  InstagramConnectionInput,
   InstagramPublication,
   InstagramPublishInput,
   InstagramPublishingStatus,
@@ -1198,14 +1199,14 @@ export const getBeginInstagramConnectionUrl = () => {
 /**
  * @summary Start the Instagram account connection flow
  */
-export const beginInstagramConnection = async ( options?: Parameters<typeof customFetch>[1]): Promise<InstagramConnection> => {
+export const beginInstagramConnection = async (instagramConnectionInput: InstagramConnectionInput, options?: Parameters<typeof customFetch>[1]): Promise<InstagramConnection> => {
 
   return customFetch<InstagramConnection>(getBeginInstagramConnectionUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(instagramConnectionInput)
   }
 );}
 
@@ -1214,8 +1215,8 @@ export const beginInstagramConnection = async ( options?: Parameters<typeof cust
 
 
 export const getBeginInstagramConnectionMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,{data: BodyType<InstagramConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,{data: BodyType<InstagramConnectionInput>}, TContext> => {
 
 const mutationKey = ['beginInstagramConnection'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1227,10 +1228,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof beginInstagramConnection>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof beginInstagramConnection>>, {data: BodyType<InstagramConnectionInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  beginInstagramConnection(requestOptions)
+          return  beginInstagramConnection(data,requestOptions)
         }
 
 
@@ -1241,18 +1242,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type BeginInstagramConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof beginInstagramConnection>>>
-
+    export type BeginInstagramConnectionMutationBody = BodyType<InstagramConnectionInput>
     export type BeginInstagramConnectionMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Start the Instagram account connection flow
  */
 export const useBeginInstagramConnection = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof beginInstagramConnection>>, TError,{data: BodyType<InstagramConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof beginInstagramConnection>>,
         TError,
-        void,
+        {data: BodyType<InstagramConnectionInput>},
         TContext
       > => {
       return useMutation(getBeginInstagramConnectionMutationOptions(options));

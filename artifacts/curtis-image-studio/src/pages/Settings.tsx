@@ -58,6 +58,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const instagramAuthorizationPollMs = 3_000;
 const instagramAuthorizationTimeoutMs = 2 * 60 * 1_000;
@@ -72,6 +79,9 @@ export default function SettingsPage() {
       : null,
   );
   const [accessPassword, setAccessPassword] = useState("");
+  const [instagramAccountType, setInstagramAccountType] = useState<
+    "business" | "creator"
+  >("business");
 
   const { data: studioSession, isLoading: sessionLoading } =
     useGetStudioSession({
@@ -178,7 +188,7 @@ export default function SettingsPage() {
     }
     authorizationWindow.opener = null;
 
-    connectMutation.mutate(undefined, {
+    connectMutation.mutate({ data: { accountType: instagramAccountType } }, {
       onSuccess: (connection) => {
         authorizationWindow.location.replace(connection.authorizationUrl);
         setAuthorizationStartedAt(Date.now());
@@ -387,7 +397,7 @@ export default function SettingsPage() {
 
               <Separator />
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {status?.connected
@@ -395,10 +405,45 @@ export default function SettingsPage() {
                       : "Connect a professional Instagram account"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Instagram requires a Business or Creator account.
+                    Choose the account type before opening the secure Composio
+                    authorization page.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-end gap-2">
+                  {!status?.connected && (
+                    <div className="min-w-[172px] space-y-1.5">
+                      <label
+                        htmlFor="instagram-account-type"
+                        className="text-xs font-medium text-muted-foreground"
+                      >
+                        Instagram account type
+                      </label>
+                      <Select
+                        value={instagramAccountType}
+                        onValueChange={(value) => {
+                          if (value === "business" || value === "creator") {
+                            setInstagramAccountType(value);
+                          }
+                        }}
+                        disabled={!canLoadSettings || connectMutation.isPending}
+                      >
+                        <SelectTrigger
+                          id="instagram-account-type"
+                          data-testid="select-instagram-account-type"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="business">
+                            Business account
+                          </SelectItem>
+                          <SelectItem value="creator">
+                            Creator account
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"

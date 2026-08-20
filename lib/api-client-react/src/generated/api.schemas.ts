@@ -268,6 +268,22 @@ export interface InstagramConnection {
   expiresAt?: string | null;
 }
 
+/**
+ * The professional Instagram account type the operator intends to authorize.
+ */
+export type InstagramConnectionInputAccountType = typeof InstagramConnectionInputAccountType[keyof typeof InstagramConnectionInputAccountType];
+
+
+export const InstagramConnectionInputAccountType = {
+  business: 'business',
+  creator: 'creator',
+} as const;
+
+export interface InstagramConnectionInput {
+  /** The professional Instagram account type the operator intends to authorize. */
+  accountType: InstagramConnectionInputAccountType;
+}
+
 export interface InstagramPublishInput {
   /** @maxLength 16000000 */
   imageDataUrl: string;

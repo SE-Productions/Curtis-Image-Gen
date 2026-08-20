@@ -25,6 +25,8 @@ export * from './generateContentPlanInput';
 export * from './getContentPlanParams';
 export * from './healthStatus';
 export * from './instagramConnection';
+export * from './instagramConnectionInput';
+export * from './instagramConnectionInputAccountType';
 export * from './instagramPublication';
 export * from './instagramPublishingStatus';
 export * from './instagramPublishingStatusConnectionStatus';
