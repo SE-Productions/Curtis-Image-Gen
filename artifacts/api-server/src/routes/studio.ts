@@ -954,6 +954,7 @@ router.post(
           image_url: publicImageUrl,
           caption: parsed.data.caption,
         },
+        dangerouslySkipVersionCheck: true,
       },
     );
     const containerId = findPublicationId(mediaContainer);
@@ -966,6 +967,7 @@ router.post(
       {
         userId: composioUserId,
         arguments: { creation_id: containerId },
+        dangerouslySkipVersionCheck: true,
       },
     );
     const postId = findPublicationId(publication);
