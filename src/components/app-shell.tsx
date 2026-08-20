@@ -105,7 +105,7 @@ export function AppShell({
                 to="/login"
                 className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-fg"
               >
-                Sign in
+                
               </Link>
             )}
           </div>

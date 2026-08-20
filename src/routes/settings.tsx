@@ -10,14 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { UserButton } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { disconnectInstagram, getStudioState, saveSettings } from "@/lib/functions";
 import type { StudioCapabilities, StudioSettings } from "@/lib/types";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
 function SettingsPage() {
-  const { user, isPending } = useCurrentUserState();
   const [settings, setSettings] = useState<StudioSettings | null>(null);
   const [caps, setCaps] = useState<StudioCapabilities | null>(null);
   const [token, setToken] = useState("");
@@ -34,7 +32,6 @@ function SettingsPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (isPending || !user) return;
     void getStudioState().then((s) => {
       setSettings(s.settings);
       setCaps(s.capabilities);
@@ -53,63 +50,7 @@ function SettingsPage() {
           error: "Could not reach Composio",
         }),
       );
-  }, [isPending, user]);
-
-  const [gatePassword, setGatePassword] = useState("");
-  const [gateError, setGateError] = useState<string | null>(null);
-  const [gateBusy, setGateBusy] = useState(false);
-
-  if (!user && !isPending) {
-    return (
-      <AppShell eyebrow="Settings">
-        <h2 className="font-serif text-3xl tracking-tight">Studio</h2>
-        <p className="mt-2 text-sm text-muted">
-          Enter the studio password to open settings.
-        </p>
-        <form
-          className="mt-6 max-w-sm space-y-3"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            setGateError(null);
-            setGateBusy(true);
-            try {
-              const res = await fetch("/api/studio/login", {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ password: gatePassword }),
-              });
-              if (!res.ok) {
-                setGateError("Wrong password.");
-                setGateBusy(false);
-                return;
-              }
-              window.location.assign("/settings");
-            } catch {
-              setGateError("Could not sign in.");
-              setGateBusy(false);
-            }
-          }}
-        >
-          <div className="space-y-1.5">
-            <Label htmlFor="studio-password">Password</Label>
-            <Input
-              id="studio-password"
-              type="password"
-              autoComplete="current-password"
-              value={gatePassword}
-              onChange={(e) => setGatePassword(e.target.value)}
-              placeholder="Enter password"
-            />
-          </div>
-          {gateError ? <p className="text-sm text-primary">{gateError}</p> : null}
-          <Button type="submit" className="w-full" disabled={gateBusy || !gatePassword}>
-            {gateBusy ? "Signing in…" : "Open settings"}
-          </Button>
-        </form>
-      </AppShell>
-    );
-  }
+  }, []);
 
   if (!settings) {
     return (
