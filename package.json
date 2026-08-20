@@ -3,7 +3,7 @@
   "private": true,
   "description": "Face-locked Instagram studio: NVIDIA director, calendar fill, 1x daily auto-post.",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "sideEffects": false,
   "type": "module",
