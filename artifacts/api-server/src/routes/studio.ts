@@ -956,7 +956,7 @@ router.post(
       {
         userId: composioUserId,
         arguments: {
-          image_url: stagedImage,
+          image_file: stagedImage,
           caption: parsed.data.caption,
         },
         dangerouslySkipVersionCheck: true,
