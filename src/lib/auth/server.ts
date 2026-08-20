@@ -125,6 +125,13 @@ const trustedOrigins: string[] = explicitBaseURL
 
 const databaseUrl = env("DATABASE_URL");
 
+function databaseConnectionString(value: string): string {
+  if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") return value;
+  const parsed = new URL(value);
+  parsed.searchParams.set("sslmode", "no-verify");
+  return parsed.toString();
+}
+
 // Static broker OAuth endpoints (skip OIDC discovery on every sign-in / callback).
 // Discovery would cost an extra network hop to the broker before the popup can
 // even redirect to Google/X — the live-preview popup felt stuck on the app for
@@ -139,7 +146,7 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // SAME DB as app data, including email/password users. Both use the Better Auth
 // schema from `migrations/0001_auth.sql`.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? new Pool({ connectionString: databaseConnectionString(databaseUrl) })
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */

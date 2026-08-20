@@ -8,6 +8,13 @@ const rawDatabaseUrl =
 const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
+function databaseConnectionString(value: string): string {
+  if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") return value;
+  const parsed = new URL(value);
+  parsed.searchParams.set("sslmode", "no-verify");
+  return parsed.toString();
+}
+
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
  * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
@@ -92,7 +99,7 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
     const pool = new Pool({
-      connectionString: databaseUrl,
+      connectionString: databaseConnectionString(databaseUrl),
       ssl: /localhost|127\.0\.0\.1/.test(databaseUrl)
         ? undefined
         : { rejectUnauthorized: false },

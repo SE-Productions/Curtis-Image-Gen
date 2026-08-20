@@ -29,6 +29,9 @@ services:
       - key: NODE_VERSION
         value: "22"
         scope: BUILD_TIME
+      - key: DATABASE_SSL_REJECT_UNAUTHORIZED
+        value: "false"
+        scope: RUN_AND_BUILD_TIME
       - key: NITRO_PRESET
         value: node-server
         scope: RUN_AND_BUILD_TIME

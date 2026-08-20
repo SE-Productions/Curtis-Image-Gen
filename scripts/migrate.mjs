@@ -15,6 +15,13 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 
 const databaseUrl = process.env.DATABASE_URL;
+
+function databaseConnectionString(value) {
+  if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") return value;
+  const parsed = new URL(value);
+  parsed.searchParams.set("sslmode", "no-verify");
+  return parsed.toString();
+}
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
@@ -31,7 +38,7 @@ function sslFor(url) {
 
 async function main() {
   const pool = new pg.Pool({
-    connectionString: databaseUrl,
+    connectionString: databaseConnectionString(databaseUrl),
     max: 1,
     ssl: sslFor(databaseUrl),
   });
