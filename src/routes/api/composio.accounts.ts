@@ -17,8 +17,9 @@ export const Route = createFileRoute("/api/composio/accounts")({
         }
         const deleted = await deleteComposioAccount(id);
         const after = await getComposioStatus();
+        const remaining = after.accounts.filter((account) => account.id !== id);
         return Response.json(
-          { ...deleted, remaining: after.accounts },
+          { ...deleted, remaining, accountCount: remaining.length },
           { status: deleted.ok ? 200 : 400 },
         );
       },

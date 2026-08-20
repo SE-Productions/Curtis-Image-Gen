@@ -29,6 +29,11 @@ async function apiKey(): Promise<string> {
   }
 }
 
+function composioUserIds(): string[] {
+  const primary = process.env.COMPOSIO_USER_ID?.trim() || "nova-luis";
+  return [...new Set([primary, "nova-luis", "curtis-image-studio", "default"])];
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
@@ -163,10 +168,13 @@ export async function getComposioStatus(): Promise<ComposioStatus> {
     };
   }
 
+  const users = composioUserIds().map((id) => encodeURIComponent(id)).join(",");
   const attempts = [
+    `/api/v3.1/connected_accounts?toolkit_slugs=instagram&user_ids=${users}&limit=50`,
+    `/api/v3.1/connected_accounts?user_ids=${users}&limit=50`,
     "/api/v3.1/connected_accounts?toolkit_slugs=instagram&limit=50",
-    "/api/v3/connected_accounts?toolkit_slugs=instagram&limit=50",
     "/api/v3.1/connected_accounts?limit=50",
+    "/api/v3/connected_accounts?toolkit_slugs=instagram&limit=50",
     "/api/v3/connected_accounts?limit=50",
   ];
 
@@ -238,10 +246,13 @@ export function isBusinessAccount(account: ComposioAccount): boolean {
 export async function deleteComposioAccount(id: string): Promise<{ ok: boolean; error: string | null }> {
   if (!(await apiKey())) return { ok: false, error: "COMPOSIO_API_KEY is not set" };
   if (!id.startsWith("ca_")) return { ok: false, error: "Invalid account id" };
+  await composioFetch(`/api/v3.1/connected_accounts/${id}/revoke`, { method: "POST" });
+  await composioFetch(`/api/v3/connected_accounts/${id}/revoke`, { method: "POST" });
   const attempts = [
     `/api/v3.1/connected_accounts/${id}`,
     `/api/v3/connected_accounts/${id}`,
   ];
+  let lastError = "Could not delete Composio account";
   for (const path of attempts) {
     const { status, body } = await composioFetch(path, { method: "DELETE" });
     if (status === 200 || status === 204 || status === 404) {
@@ -251,18 +262,13 @@ export async function deleteComposioAccount(id: string): Promise<{ ok: boolean; 
       return { ok: false, error: "Composio rejected the API key" };
     }
     const rec = asRecord(body);
-    const error =
+    lastError =
       (typeof rec.error === "string" && rec.error) ||
       (typeof rec.message === "string" && rec.message) ||
       `Composio ${status}`;
     if (status >= 200 && status < 300) return { ok: true, error: null };
-    if (status !== 404) {
-      last: {
-        return { ok: false, error };
-      }
-    }
   }
-  return { ok: false, error: "Could not delete Composio account" };
+  return { ok: false, error: lastError };
 }
 
 export async function removeBusinessInstagramAccount(): Promise<{
@@ -325,7 +331,7 @@ export async function createInstagramConnectLink(): Promise<{
   }
   const payload = {
     auth_config_id: authConfigId,
-    user_id: "curtis-image-studio",
+    user_id: process.env.COMPOSIO_USER_ID?.trim() || "nova-luis",
     alias: "se-se",
     callback_url: "https://curtis-image-studio-6eadq.ondigitalocean.app/settings",
   };

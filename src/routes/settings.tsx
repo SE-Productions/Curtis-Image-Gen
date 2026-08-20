@@ -350,19 +350,50 @@ function SettingsPage() {
                         className="w-full"
                         data-testid={`delete-ig-${account.id}`}
                         onClick={async () => {
+                          const id = account.id;
+                          setComposio((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  accounts: prev.accounts.filter((item) => item.id !== id),
+                                  accountCount: Math.max(0, prev.accountCount - 1),
+                                  connected: prev.accounts.some(
+                                    (item) => item.id !== id && item.status === "ACTIVE" && !item.disabled,
+                                  ),
+                                }
+                              : prev,
+                          );
                           const res = await fetch(
-                            `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
+                            `/api/composio/accounts?id=${encodeURIComponent(id)}`,
                             { method: "DELETE" },
                           );
-                          const body = (await res.json()) as { ok: boolean; error?: string };
+                          const body = (await res.json()) as {
+                            ok: boolean;
+                            error?: string;
+                            remaining?: ComposioAccount[];
+                          };
                           if (!body.ok) {
                             toast.error(body.error || "Could not delete account");
+                            await refreshComposio();
                             return;
                           }
-                          if (settings.composioAccountId === account.id) {
+                          if (body.remaining) {
+                            setComposio((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    accounts: body.remaining!.filter((item) => item.id !== id),
+                                    accountCount: body.remaining!.filter((item) => item.id !== id).length,
+                                    connected: body.remaining!.some(
+                                      (item) => item.id !== id && item.status === "ACTIVE" && !item.disabled,
+                                    ),
+                                  }
+                                : prev,
+                            );
+                          }
+                          if (settings.composioAccountId === id) {
                             await persist({ composioAccountId: "" });
                           }
-                          await refreshComposio();
                           toast.success("Instagram account deleted");
                         }}
                       >
