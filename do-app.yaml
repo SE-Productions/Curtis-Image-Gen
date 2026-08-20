@@ -12,7 +12,7 @@ services:
     git:
       repo_clone_url: https://github.com/SE-Productions/Curtis-Image-Gen.git
       branch: main
-    build_command: npm ci && NITRO_PRESET=node-server npm run build
+    build_command: npm install --no-audit --no-fund && NITRO_PRESET=node-server npm run build
     run_command: node scripts/migrate.mjs && node .output/server/index.mjs
     health_check:
       http_path: /api/healthz
