@@ -34,6 +34,9 @@ export type StudioSettings = {
   instagramUsername: string;
   hasToken: boolean;
   hasNvidiaKey: boolean;
+  hasXaiKey: boolean;
+  hasComposioKey: boolean;
+  composioAccountId: string;
   autoPublish: boolean;
   postHour: number;
   postMinute: number;

@@ -10,6 +10,8 @@ import {
 } from "@/lib/ai";
 import { dateRange, todayInZone, zonedDateTime } from "@/lib/dates";
 import { publishToInstagram, verifyInstagramToken } from "@/lib/instagram";
+import { loadVaultKeys } from "@/lib/vault";
+import { setRuntimeXaiKey } from "@/lib/ai";
 import type { PostFormat, PostStatus, StudioPost, StudioSettings } from "@/lib/types";
 
 type PostRow = {
@@ -63,6 +65,9 @@ const defaultSettings: StudioSettings = {
   instagramUsername: "",
   hasToken: false,
   hasNvidiaKey: false,
+  hasXaiKey: false,
+  hasComposioKey: false,
+  composioAccountId: "",
   autoPublish: true,
   postHour: 10,
   postMinute: 0,
@@ -78,20 +83,26 @@ async function loadSettings(userId: string): Promise<StudioSettings> {
     instagram_token: string | null;
     instagram_username: string | null;
     nvidia_api_key: string | null;
+    xai_api_key: string | null;
+    composio_api_key: string | null;
+    composio_account_id: string | null;
     auto_publish: boolean;
     post_hour: number;
     post_minute: number;
     timezone: string;
     format: string;
     days: number;
-  }>`select instagram_user_id, instagram_token, instagram_username, nvidia_api_key, auto_publish, post_hour, post_minute, timezone, format, days from studio_settings where user_id = ${userId}`;
+  }>`select instagram_user_id, instagram_token, instagram_username, nvidia_api_key, xai_api_key, composio_api_key, composio_account_id, auto_publish, post_hour, post_minute, timezone, format, days from studio_settings where user_id = ${userId}`;
   const row = rows[0];
   if (!row) return defaultSettings;
   return {
     instagramUserId: row.instagram_user_id ?? "",
     instagramUsername: row.instagram_username ?? "",
     hasToken: Boolean(row.instagram_token),
-    hasNvidiaKey: Boolean(row.nvidia_api_key),
+    hasNvidiaKey: Boolean(row.nvidia_api_key || process.env.NVIDIA_API_KEY),
+    hasXaiKey: Boolean(row.xai_api_key || process.env.XAI_API_KEY),
+    hasComposioKey: Boolean(row.composio_api_key || process.env.COMPOSIO_API_KEY),
+    composioAccountId: row.composio_account_id ?? "",
     autoPublish: Boolean(row.auto_publish),
     postHour: Number(row.post_hour),
     postMinute: Number(row.post_minute),
@@ -123,6 +134,8 @@ export const getStudioState = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     const settings = await loadSettings(context.userId);
+    const vault = await loadVaultKeys(context.userId);
+    setRuntimeXaiKey(vault.xai);
     const faces = await sql<{ id: string; created_at: string }>`
       select id, created_at from studio_faces
       where user_id = ${context.userId}
@@ -139,7 +152,7 @@ export const getStudioState = createServerFn({ method: "GET" })
       settings,
       face: faces[0] ? { id: faces[0].id, createdAt: faces[0].created_at } : null,
       posts: posts.map(mapPost),
-      capabilities: capabilities(settings.hasNvidiaKey ? "user" : undefined),
+      capabilities: capabilities(vault.nvidia || undefined, vault.xai || undefined),
     };
   });
 
@@ -194,7 +207,9 @@ export const fillCalendar = createServerFn({ method: "POST" })
   })
   .handler(async ({ context, data }) => {
     const nvidiaKey = await resolveNvidiaKey(context.userId);
-    if (capabilities(nvidiaKey).director === "none") {
+    const vault = await loadVaultKeys(context.userId);
+    setRuntimeXaiKey(vault.xai);
+    if (capabilities(nvidiaKey, vault.xai).director === "none") {
       throw new Error("AI is not available in this environment");
     }
     const sql = await getSql();
@@ -274,6 +289,7 @@ export const renderPost = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: { id: string }) => input)
   .handler(async ({ context, data }) => {
+    setRuntimeXaiKey((await loadVaultKeys(context.userId)).xai);
     const sql = await getSql();
     const posts = await sql<PostRow>`
       select id, plan_date, title, topic, concept, prompt, caption, format, status,
@@ -323,6 +339,7 @@ export const renderPostVideo = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: { id: string; publicOrigin: string }) => input)
   .handler(async ({ context, data }) => {
+    setRuntimeXaiKey((await loadVaultKeys(context.userId)).xai);
     const sql = await getSql();
     const posts = await sql<PostRow>`
       select id, plan_date, title, topic, concept, prompt, caption, format, status,
@@ -381,6 +398,13 @@ export const saveSettings = createServerFn({ method: "POST" })
       instagramUserId?: string;
       instagramToken?: string;
       nvidiaApiKey?: string;
+      xaiApiKey?: string;
+      composioApiKey?: string;
+      composioAccountId?: string;
+      clearNvidia?: boolean;
+      clearXai?: boolean;
+      clearComposio?: boolean;
+      clearInstagram?: boolean;
       autoPublish?: boolean;
       postHour?: number;
       postMinute?: number;
@@ -395,20 +419,43 @@ export const saveSettings = createServerFn({ method: "POST" })
       instagram_token: string | null;
       instagram_username: string | null;
       nvidia_api_key: string | null;
+      xai_api_key: string | null;
+      composio_api_key: string | null;
+      composio_account_id: string | null;
       auto_publish: boolean;
       post_hour: number;
       post_minute: number;
       timezone: string;
-    }>`select instagram_user_id, instagram_token, instagram_username, nvidia_api_key, auto_publish, post_hour, post_minute, timezone from studio_settings where user_id = ${context.userId}`;
+    }>`select instagram_user_id, instagram_token, instagram_username, nvidia_api_key, xai_api_key, composio_api_key, composio_account_id, auto_publish, post_hour, post_minute, timezone from studio_settings where user_id = ${context.userId}`;
     const row = current[0];
     let userId = data.instagramUserId?.trim() ?? row?.instagram_user_id ?? "";
     let token = data.instagramToken?.trim()
       ? data.instagramToken.trim()
       : (row?.instagram_token ?? "");
     let username = row?.instagram_username ?? "";
-    const nvidiaKey = data.nvidiaApiKey?.trim()
-      ? data.nvidiaApiKey.trim()
-      : (row?.nvidia_api_key ?? "");
+    if (data.clearInstagram) {
+      userId = "";
+      token = "";
+      username = "";
+    }
+    const nvidiaKey = data.clearNvidia
+      ? ""
+      : data.nvidiaApiKey?.trim()
+        ? data.nvidiaApiKey.trim()
+        : (row?.nvidia_api_key ?? "");
+    const xaiKey = data.clearXai
+      ? ""
+      : data.xaiApiKey?.trim()
+        ? data.xaiApiKey.trim()
+        : (row?.xai_api_key ?? "");
+    const composioKey = data.clearComposio
+      ? ""
+      : data.composioApiKey?.trim()
+        ? data.composioApiKey.trim()
+        : (row?.composio_api_key ?? "");
+    const composioAccountId = data.composioAccountId?.trim()
+      ? data.composioAccountId.trim()
+      : (row?.composio_account_id ?? "");
 
     if (userId && token && data.instagramToken?.trim()) {
       const verified = await verifyInstagramToken({ igUserId: userId, token });
@@ -428,6 +475,9 @@ export const saveSettings = createServerFn({ method: "POST" })
         instagram_token = ${token || null},
         instagram_username = ${username || null},
         nvidia_api_key = ${nvidiaKey || null},
+        xai_api_key = ${xaiKey || null},
+        composio_api_key = ${composioKey || null},
+        composio_account_id = ${composioAccountId || null},
         auto_publish = ${auto},
         post_hour = ${hour},
         post_minute = ${minute},

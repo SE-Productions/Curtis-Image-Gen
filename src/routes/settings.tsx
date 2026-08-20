@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CheckCircle2, Cpu, Instagram, Unplug } from "lucide-react";
+import { CheckCircle2, Cpu, Instagram, KeyRound, Trash2, Unplug } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -9,27 +9,98 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { UserButton } from "@/lib/auth/gates";
-import { disconnectInstagram, getStudioState, saveSettings } from "@/lib/functions";
+import { getStudioState, saveSettings } from "@/lib/functions";
 import type { StudioCapabilities, StudioSettings } from "@/lib/types";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
+type ComposioAccount = {
+  id: string;
+  status: string;
+  username: string | null;
+  name: string | null;
+  accountType: string | null;
+  disabled: boolean;
+};
+
+type ComposioStatus = {
+  ok: boolean;
+  keyPresent: boolean;
+  connected: boolean;
+  accountCount: number;
+  accounts: ComposioAccount[];
+  error: string | null;
+};
+
+function KeyRow({
+  id,
+  label,
+  hint,
+  saved,
+  placeholder,
+  value,
+  onChange,
+  onSave,
+  onDelete,
+  saving,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  saved: boolean;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSave: () => void;
+  onDelete: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="space-y-2 rounded-xl border border-border bg-surface p-4">
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id}>{label}</Label>
+        <Badge tone={saved ? "ok" : "muted"}>{saved ? "Saved" : "Empty"}</Badge>
+      </div>
+      <p className="text-sm text-muted">{hint}</p>
+      <Input
+        id={id}
+        type="password"
+        autoComplete="off"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={saved ? "Key saved · paste to replace" : placeholder}
+      />
+      <div className="flex gap-2">
+        <Button className="flex-1" disabled={saving || !value.trim()} onClick={onSave}>
+          Save key
+        </Button>
+        <Button variant="outline" disabled={saving || !saved} onClick={onDelete}>
+          <Trash2 className="size-4" />
+          Remove
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function SettingsPage() {
   const [settings, setSettings] = useState<StudioSettings | null>(null);
   const [caps, setCaps] = useState<StudioCapabilities | null>(null);
+  const [nvidiaKey, setNvidiaKey] = useState("");
+  const [xaiKey, setXaiKey] = useState("");
+  const [composioKey, setComposioKey] = useState("");
   const [token, setToken] = useState("");
   const [userId, setUserId] = useState("");
-  const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState(false);
-  const [composio, setComposio] = useState<{
-    ok: boolean;
-    keyPresent: boolean;
-    connected: boolean;
-    accountCount: number;
-    accounts: Array<{ id: string; status: string; username: string | null; disabled: boolean }>;
-    error: string | null;
-  } | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [composio, setComposio] = useState<ComposioStatus | null>(null);
+
+  async function refreshComposio() {
+    const res = await fetch("/api/composio/status");
+    const body = (await res.json()) as ComposioStatus;
+    setComposio(body);
+    return body;
+  }
 
   useEffect(() => {
     void getStudioState().then((s) => {
@@ -37,19 +108,16 @@ function SettingsPage() {
       setCaps(s.capabilities);
       setUserId(s.settings.instagramUserId);
     });
-    void fetch("/api/composio/status")
-      .then((r) => r.json())
-      .then(setComposio)
-      .catch(() =>
-        setComposio({
-          ok: false,
-          keyPresent: false,
-          connected: false,
-          accountCount: 0,
-          accounts: [],
-          error: "Could not reach Composio",
-        }),
-      );
+    void refreshComposio().catch(() =>
+      setComposio({
+        ok: false,
+        keyPresent: false,
+        connected: false,
+        accountCount: 0,
+        accounts: [],
+        error: "Could not reach Composio",
+      }),
+    );
   }, []);
 
   if (!settings) {
@@ -63,7 +131,17 @@ function SettingsPage() {
   const current = settings;
 
   async function persist(
-    patch: Partial<StudioSettings> & { instagramToken?: string; nvidiaApiKey?: string },
+    patch: Partial<StudioSettings> & {
+      instagramToken?: string;
+      nvidiaApiKey?: string;
+      xaiApiKey?: string;
+      composioApiKey?: string;
+      composioAccountId?: string;
+      clearNvidia?: boolean;
+      clearXai?: boolean;
+      clearComposio?: boolean;
+      clearInstagram?: boolean;
+    },
   ) {
     setSaving(true);
     try {
@@ -72,6 +150,13 @@ function SettingsPage() {
           instagramUserId: patch.instagramUserId ?? userId,
           instagramToken: patch.instagramToken,
           nvidiaApiKey: patch.nvidiaApiKey,
+          xaiApiKey: patch.xaiApiKey,
+          composioApiKey: patch.composioApiKey,
+          composioAccountId: patch.composioAccountId ?? current.composioAccountId,
+          clearNvidia: patch.clearNvidia,
+          clearXai: patch.clearXai,
+          clearComposio: patch.clearComposio,
+          clearInstagram: patch.clearInstagram,
           autoPublish: patch.autoPublish ?? current.autoPublish,
           postHour: patch.postHour ?? current.postHour,
           postMinute: patch.postMinute ?? current.postMinute,
@@ -79,9 +164,16 @@ function SettingsPage() {
         },
       });
       setSettings(next);
-      setToken("");
       setNvidiaKey("");
+      setXaiKey("");
+      setComposioKey("");
+      setToken("");
       toast.success("Settings saved");
+      const state = await getStudioState();
+      setCaps(state.capabilities);
+      if (patch.composioApiKey || patch.clearComposio) {
+        await refreshComposio();
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save settings");
     } finally {
@@ -89,10 +181,64 @@ function SettingsPage() {
     }
   }
 
+  const selectedAccount =
+    composio?.accounts.find((account) => account.id === settings.composioAccountId) ??
+    composio?.accounts.find((account) => account.status === "ACTIVE" && !account.disabled) ??
+    null;
+
   return (
     <AppShell eyebrow="Settings" nvidia={caps?.nvidia}>
       <h2 className="mb-6 font-serif text-3xl tracking-tight">Studio</h2>
       <div className="space-y-4">
+        <Card>
+          <CardBody className="space-y-4">
+            <div className="flex items-center gap-2">
+              <KeyRound className="size-4 text-primary" />
+              <h3 className="font-serif text-xl">AI keys</h3>
+            </div>
+            <p className="text-sm text-muted">
+              Add or replace the keys this studio uses. Env keys still work as fallback until you
+              save one here.
+            </p>
+            <KeyRow
+              id="nvkey"
+              label="NVIDIA NIM"
+              hint="Writes the ultra-realistic scene prompts."
+              saved={settings.hasNvidiaKey || Boolean(caps?.nvidia)}
+              placeholder="nvapi-…"
+              value={nvidiaKey}
+              onChange={setNvidiaKey}
+              onSave={() => void persist({ nvidiaApiKey: nvidiaKey })}
+              onDelete={() => void persist({ clearNvidia: true })}
+              saving={saving}
+            />
+            <KeyRow
+              id="xaikey"
+              label="xAI Grok / Imagine"
+              hint="Director fallback and face-locked image/video generation."
+              saved={settings.hasXaiKey || Boolean(caps?.grok)}
+              placeholder="xai-…"
+              value={xaiKey}
+              onChange={setXaiKey}
+              onSave={() => void persist({ xaiApiKey: xaiKey })}
+              onDelete={() => void persist({ clearXai: true })}
+              saving={saving}
+            />
+            <KeyRow
+              id="composiokey"
+              label="Composio"
+              hint="Connects and manages Instagram accounts for daily drops."
+              saved={settings.hasComposioKey || Boolean(composio?.keyPresent)}
+              placeholder="ak_…"
+              value={composioKey}
+              onChange={setComposioKey}
+              onSave={() => void persist({ composioApiKey: composioKey })}
+              onDelete={() => void persist({ clearComposio: true })}
+              saving={saving}
+            />
+          </CardBody>
+        </Card>
+
         <Card>
           <CardBody className="space-y-3">
             <div className="flex items-center gap-2">
@@ -103,105 +249,129 @@ function SettingsPage() {
                   <CheckCircle2 className="size-3" />
                   Connected
                 </Badge>
-              ) : composio?.ok ? (
-                <Badge>No IG account</Badge>
               ) : (
-                <Badge>{composio?.keyPresent ? "Key error" : "Not configured"}</Badge>
+                <Badge>{composio?.keyPresent ? "No account" : "Key needed"}</Badge>
               )}
             </div>
             <p className="text-sm text-muted">
-              Daily drops use the Instagram account connected in Composio. This page only
-              checks the connection — it does not publish.
+              Pick which Instagram account to use, connect a new one, or delete a linked account.
+              Connecting opens Composio — sign in as the SE account.
             </p>
-            {composio?.error ? (
-              <p className="text-sm text-primary">{composio.error}</p>
+            {composio?.error ? <p className="text-sm text-primary">{composio.error}</p> : null}
+            <div className="space-y-1.5">
+              <Label htmlFor="ig-account">Active account</Label>
+              <select
+                id="ig-account"
+                className="flex h-10 w-full rounded-md border border-border bg-bg px-3 text-sm"
+                value={settings.composioAccountId}
+                onChange={(event) => void persist({ composioAccountId: event.target.value })}
+              >
+                <option value="">Select an Instagram account</option>
+                {(composio?.accounts ?? []).map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.username ? `@${account.username.replace(/^@/, "")}` : account.id}
+                    {account.status !== "ACTIVE" ? ` · ${account.status}` : ""}
+                    {account.accountType ? ` · ${account.accountType}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {selectedAccount ? (
+              <p className="text-sm text-muted">
+                Using {selectedAccount.username ? `@${selectedAccount.username}` : selectedAccount.id}{" "}
+                ({selectedAccount.status}
+                {selectedAccount.accountType ? ` · ${selectedAccount.accountType}` : ""}).
+              </p>
             ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={connecting || !composio?.keyPresent}
+                onClick={async () => {
+                  setConnecting(true);
+                  try {
+                    const res = await fetch("/api/composio/connect", { method: "POST" });
+                    const body = (await res.json()) as { ok: boolean; url?: string; error?: string };
+                    if (!body.ok || !body.url) throw new Error(body.error || "No connect URL");
+                    window.location.assign(body.url);
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "Could not start Composio");
+                    setConnecting(false);
+                  }
+                }}
+              >
+                {connecting ? "Opening Composio…" : "Connect Instagram"}
+              </Button>
+              <Button variant="outline" onClick={() => void refreshComposio()}>
+                Refresh accounts
+              </Button>
+              {settings.composioAccountId ? (
+                <Button
+                  variant="outline"
+                  disabled={saving}
+                  onClick={async () => {
+                    const id = settings.composioAccountId;
+                    const res = await fetch(`/api/composio/accounts?id=${encodeURIComponent(id)}`, {
+                      method: "DELETE",
+                    });
+                    const body = (await res.json()) as { ok: boolean; error?: string };
+                    if (!body.ok) {
+                      toast.error(body.error || "Could not remove account");
+                      return;
+                    }
+                    await persist({ composioAccountId: "" });
+                    await refreshComposio();
+                    toast.success("Instagram account removed");
+                  }}
+                >
+                  <Trash2 className="size-4" />
+                  Remove selected
+                </Button>
+              ) : null}
+            </div>
             {composio?.accounts?.length ? (
               <ul className="space-y-2 text-sm">
                 {composio.accounts.map((account) => (
                   <li
                     key={account.id}
-                    className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2"
+                    className="flex items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2"
                   >
                     <span>
-                      {account.username ? `@${account.username.replace(/^@/, "")}` : account.id.slice(0, 12)}
+                      {account.username ? `@${account.username.replace(/^@/, "")}` : account.id.slice(0, 14)}
                     </span>
-                    <Badge tone={account.status === "ACTIVE" && !account.disabled ? "ok" : "muted"}>
-                      {account.disabled ? "Disabled" : account.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge tone={account.status === "ACTIVE" && !account.disabled ? "ok" : "muted"}>
+                        {account.disabled ? "Disabled" : account.status}
+                      </Badge>
+                      <button
+                        type="button"
+                        className="text-muted hover:text-primary"
+                        onClick={async () => {
+                          const res = await fetch(
+                            `/api/composio/accounts?id=${encodeURIComponent(account.id)}`,
+                            { method: "DELETE" },
+                          );
+                          const body = (await res.json()) as { ok: boolean; error?: string };
+                          if (!body.ok) {
+                            toast.error(body.error || "Could not remove account");
+                            return;
+                          }
+                          if (settings.composioAccountId === account.id) {
+                            await persist({ composioAccountId: "" });
+                          }
+                          await refreshComposio();
+                        }}
+                      >
+                        <Unplug className="size-4" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="text-sm text-muted">
-                {composio ? "No Instagram account is linked to this Composio key yet." : "Checking Composio…"}
+                {composio ? "No Instagram accounts on this Composio key yet." : "Checking Composio…"}
               </p>
             )}
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Instagram className="size-4 text-primary" />
-              <h3 className="font-serif text-xl">Instagram</h3>
-              {settings.hasToken ? (
-                <Badge tone="ok">
-                  <CheckCircle2 className="size-3" />
-                  {settings.instagramUsername || "Connected"}
-                </Badge>
-              ) : (
-                <Badge>Not connected</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted">
-              Connect your Instagram Business or Creator account to publish automatically,
-              once per day. Paste the Graph API user id and a long-lived access token.
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="igid">Instagram user id</Label>
-              <Input
-                id="igid"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="1789…"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="token">Access token</Label>
-              <Input
-                id="token"
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder={settings.hasToken ? "Token saved · paste to replace" : "EAAG…"}
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                disabled={saving}
-                onClick={() =>
-                  void persist({
-                    instagramUserId: userId,
-                    instagramToken: token || undefined,
-                  })
-                }
-              >
-                Connect Instagram
-              </Button>
-              {settings.hasToken ? (
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    setSettings(await disconnectInstagram());
-                    setUserId("");
-                  }}
-                >
-                  <Unplug />
-                </Button>
-              ) : null}
-            </div>
           </CardBody>
         </Card>
 
@@ -226,9 +396,7 @@ function SettingsPage() {
                   min={0}
                   max={23}
                   value={settings.postHour}
-                  onChange={(e) =>
-                    setSettings({ ...settings, postHour: Number(e.target.value) })
-                  }
+                  onChange={(e) => setSettings({ ...settings, postHour: Number(e.target.value) })}
                   onBlur={() => void persist({ postHour: settings.postHour })}
                 />
               </div>
@@ -240,9 +408,7 @@ function SettingsPage() {
                   min={0}
                   max={59}
                   value={settings.postMinute}
-                  onChange={(e) =>
-                    setSettings({ ...settings, postMinute: Number(e.target.value) })
-                  }
+                  onChange={(e) => setSettings({ ...settings, postMinute: Number(e.target.value) })}
                   onBlur={() => void persist({ postMinute: settings.postMinute })}
                 />
               </div>
@@ -252,9 +418,7 @@ function SettingsPage() {
               <Input
                 id="tz"
                 value={settings.timezone}
-                onChange={(e) =>
-                  setSettings({ ...settings, timezone: e.target.value })
-                }
+                onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
                 onBlur={() => void persist({ timezone: settings.timezone })}
               />
             </div>
@@ -265,47 +429,50 @@ function SettingsPage() {
           <CardBody className="space-y-3">
             <div className="flex items-center gap-2">
               <Cpu className="size-4 text-nvidia" />
-              <h3 className="font-serif text-xl">NVIDIA director</h3>
-              {caps?.nvidia ? (
-                <Badge tone="nvidia">
-                  <Cpu className="size-3" /> NVIDIA
-                </Badge>
+              <h3 className="font-serif text-xl">Graph API (optional)</h3>
+              {settings.hasToken ? (
+                <Badge tone="ok">{settings.instagramUsername || "Token saved"}</Badge>
               ) : (
-                <Badge>Key not set</Badge>
+                <Badge>Not used</Badge>
               )}
             </div>
             <p className="text-sm text-muted">
-              NVIDIA Llama writes ultra-realistic scene prompts with true face fidelity.
-              Paste a NIM API key, or Grok directs when NVIDIA is unavailable.
+              Only needed if you post without Composio. Composio is the primary path.
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="nvkey">NVIDIA API key</Label>
+              <Label htmlFor="igid">Instagram user id</Label>
+              <Input id="igid" value={userId} onChange={(e) => setUserId(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="token">Access token</Label>
               <Input
-                id="nvkey"
+                id="token"
                 type="password"
-                value={nvidiaKey}
-                onChange={(e) => setNvidiaKey(e.target.value)}
-                placeholder={
-                  settings.hasNvidiaKey || caps?.nvidia
-                    ? "Key saved · paste to replace"
-                    : "nvapi-…"
-                }
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder={settings.hasToken ? "Token saved · paste to replace" : "EAAG…"}
               />
             </div>
-            <Button
-              variant="outline"
-              disabled={saving || !nvidiaKey.trim()}
-              onClick={() => void persist({ nvidiaApiKey: nvidiaKey })}
-            >
-              Save NVIDIA key
-            </Button>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody className="flex items-center justify-between">
-            <p className="text-sm text-muted">Account</p>
-            <UserButton />
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                disabled={saving}
+                onClick={() =>
+                  void persist({
+                    instagramUserId: userId,
+                    instagramToken: token || undefined,
+                  })
+                }
+              >
+                Save token
+              </Button>
+              {settings.hasToken ? (
+                <Button variant="outline" onClick={() => void persist({ clearInstagram: true })}>
+                  <Trash2 className="size-4" />
+                  Remove
+                </Button>
+              ) : null}
+            </div>
           </CardBody>
         </Card>
       </div>

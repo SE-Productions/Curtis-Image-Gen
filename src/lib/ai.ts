@@ -5,18 +5,29 @@ const NVIDIA_BASE =
 const NVIDIA_MODEL =
   process.env.NVIDIA_PROMPT_MODEL ?? "meta/llama-3.1-70b-instruct";
 
-export function directorName(nvidiaKey?: string | null): "nvidia" | "grok" | "none" {
+let runtimeXaiKey = "";
+
+export function setRuntimeXaiKey(key?: string | null) {
+  runtimeXaiKey = key?.trim() ?? "";
+}
+
+function resolvedXaiKey(explicit?: string | null) {
+  return (explicit || runtimeXaiKey || process.env.XAI_API_KEY || "").trim();
+}
+
+export function directorName(nvidiaKey?: string | null, xaiKey?: string | null): "nvidia" | "grok" | "none" {
   if (process.env.NVIDIA_API_KEY || nvidiaKey) return "nvidia";
-  if (process.env.XAI_API_KEY) return "grok";
+  if (resolvedXaiKey(xaiKey)) return "grok";
   return "none";
 }
 
-export function capabilities(nvidiaKey?: string | null) {
+export function capabilities(nvidiaKey?: string | null, xaiKey?: string | null) {
+  const xai = Boolean(resolvedXaiKey(xaiKey));
   return {
     nvidia: Boolean(process.env.NVIDIA_API_KEY || nvidiaKey),
-    grok: Boolean(process.env.XAI_API_KEY),
-    imagine: Boolean(process.env.XAI_API_KEY),
-    director: directorName(nvidiaKey),
+    grok: xai,
+    imagine: xai,
+    director: directorName(nvidiaKey, xaiKey),
   } as const;
 }
 
@@ -83,7 +94,7 @@ async function chatComplete(
     }
   }
 
-  const xaiKey = process.env.XAI_API_KEY;
+  const xaiKey = resolvedXaiKey();
   if (!xaiKey) throw new Error("AI is not available in this environment");
 
   const res = await fetch("https://api.x.ai/v1/chat/completions", {
@@ -180,7 +191,7 @@ function aspectFor(format: PostFormat): "1:1" | "3:4" | "9:16" {
 }
 
 async function xaiImage(body: Record<string, unknown>): Promise<string> {
-  const key = process.env.XAI_API_KEY;
+  const key = resolvedXaiKey();
   if (!key) throw new Error("AI is not available in this environment");
   const res = await fetch("https://api.x.ai/v1/images/generations", {
     method: "POST",
@@ -202,7 +213,7 @@ async function xaiImage(body: Record<string, unknown>): Promise<string> {
 }
 
 async function xaiEdit(prompt: string, referenceDataUrl: string, aspect: string) {
-  const key = process.env.XAI_API_KEY;
+  const key = resolvedXaiKey();
   if (!key) throw new Error("AI is not available in this environment");
   const res = await fetch("https://api.x.ai/v1/images/edits", {
     method: "POST",
@@ -264,7 +275,7 @@ export async function renderFaceLockedVideo(input: {
   prompt: string;
   imageUrl: string;
 }): Promise<string> {
-  const key = process.env.XAI_API_KEY;
+  const key = resolvedXaiKey();
   if (!key) throw new Error("AI is not available in this environment");
 
   const start = await fetch("https://api.x.ai/v1/videos/generations", {

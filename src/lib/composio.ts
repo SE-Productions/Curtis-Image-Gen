@@ -19,8 +19,14 @@ export type ComposioStatus = {
   accounts: ComposioAccount[];
 };
 
-function apiKey(): string {
-  return process.env.COMPOSIO_API_KEY?.trim() ?? "";
+async function apiKey(): Promise<string> {
+  try {
+    const { loadVaultKeys } = await import("@/lib/vault");
+    const vault = await loadVaultKeys();
+    return vault.composio;
+  } catch {
+    return process.env.COMPOSIO_API_KEY?.trim() ?? "";
+  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -31,7 +37,7 @@ async function composioFetch(
   path: string,
   init: RequestInit = {},
 ): Promise<{ status: number; body: unknown }> {
-  const key = apiKey();
+  const key = await apiKey();
   if (!key) return { status: 0, body: { error: "COMPOSIO_API_KEY is not set" } };
   const headers = new Headers(init.headers);
   headers.set("x-api-key", key);
@@ -147,7 +153,7 @@ async function inspectAccount(account: ComposioAccount): Promise<ComposioAccount
 }
 
 export async function getComposioStatus(): Promise<ComposioStatus> {
-  if (!apiKey()) {
+  if (!(await apiKey())) {
     return {
       keyPresent: false,
       ok: false,
@@ -222,7 +228,7 @@ export function isBusinessAccount(account: ComposioAccount): boolean {
 }
 
 export async function deleteComposioAccount(id: string): Promise<{ ok: boolean; error: string | null }> {
-  if (!apiKey()) return { ok: false, error: "COMPOSIO_API_KEY is not set" };
+  if (!(await apiKey())) return { ok: false, error: "COMPOSIO_API_KEY is not set" };
   if (!id.startsWith("ca_")) return { ok: false, error: "Invalid account id" };
   const attempts = [
     `/api/v3.1/connected_accounts/${id}`,
