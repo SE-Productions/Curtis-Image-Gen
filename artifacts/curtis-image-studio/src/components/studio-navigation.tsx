@@ -1,12 +1,16 @@
-import { ImageIcon, Settings } from "lucide-react";
+import { ImageIcon, Settings, Download } from "lucide-react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 export function StudioNavigation({
   active,
 }: {
   active: "studio" | "planner" | "library" | "calendar" | "settings";
 }) {
+  const { canInstall, installPWA } = usePWAInstall();
   const itemClass =
     "inline-flex h-9 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
@@ -75,6 +79,18 @@ export function StudioNavigation({
         <Settings className="h-4 w-4" />
         <span className="hidden sm:inline">Settings</span>
       </Link>
+      {canInstall && (
+        <button
+          onClick={() => installPWA().then((accepted) => {
+            if (accepted) toast.success("Curtis Studio installed!");
+          })}
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="Install Curtis Studio app"
+        >
+          <Download className="h-4 w-4" />
+          <span className="hidden sm:inline">Install</span>
+        </button>
+      )}
     </nav>
   );
 }
