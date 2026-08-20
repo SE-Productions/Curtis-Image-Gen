@@ -29,6 +29,7 @@ type PostRow = {
   director: string;
   media_url: string | null;
   media_data: string | null;
+  has_media?: boolean | number | null;
   video_url: string | null;
   scheduled_for: string | null;
   published_at: string | null;
@@ -51,7 +52,7 @@ function mapPost(row: PostRow): StudioPost {
     aspectRatio: row.aspect_ratio,
     director: row.director,
     mediaUrl: row.media_url,
-    hasMedia: Boolean(row.media_data || row.media_url),
+    hasMedia: Boolean(row.media_data || row.media_url || row.has_media),
     videoUrl: row.video_url,
     scheduledFor: row.scheduled_for,
     publishedAt: row.published_at,
@@ -144,7 +145,7 @@ export const getStudioState = createServerFn({ method: "GET" })
       limit 1`;
     const posts = await sql<PostRow>`
       select id, plan_date, title, topic, concept, prompt, caption, format, status,
-             aspect_ratio, director, media_url, null as media_data, video_url,
+             aspect_ratio, director, media_url, (media_data is not null) as has_media, null as media_data, video_url,
              scheduled_for, published_at, instagram_post_id, failure_reason, created_at
       from studio_posts
       where user_id = ${context.userId}
@@ -278,7 +279,7 @@ export const fillCalendar = createServerFn({ method: "POST" })
 
     const posts = await sql<PostRow>`
       select id, plan_date, title, topic, concept, prompt, caption, format, status,
-             aspect_ratio, director, media_url, null as media_data, video_url,
+             aspect_ratio, director, media_url, (media_data is not null) as has_media, null as media_data, video_url,
              scheduled_for, published_at, instagram_post_id, failure_reason, created_at
       from studio_posts
       where user_id = ${context.userId}
@@ -597,7 +598,7 @@ async function publishOne(
 
   const fresh = await sql<PostRow>`
     select id, plan_date, title, topic, concept, prompt, caption, format, status,
-           aspect_ratio, director, media_url, null as media_data, video_url,
+           aspect_ratio, director, media_url, (media_data is not null) as has_media, null as media_data, video_url,
            scheduled_for, published_at, instagram_post_id, failure_reason, created_at
     from studio_posts where id = ${post.id}`;
   return mapPost(fresh[0]);
