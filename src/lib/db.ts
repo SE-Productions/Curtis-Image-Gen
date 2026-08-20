@@ -9,7 +9,7 @@ const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 function databaseConnectionString(value: string): string {
-  if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") return value;
+  if (/localhost|127\.0\.0\.1/.test(value)) return value;
   const parsed = new URL(value);
   parsed.searchParams.set("sslmode", "no-verify");
   return parsed.toString();

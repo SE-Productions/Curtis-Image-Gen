@@ -17,7 +17,7 @@ import pg from "pg";
 const databaseUrl = process.env.DATABASE_URL;
 
 function databaseConnectionString(value) {
-  if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== "false") return value;
+  if (/localhost|127\.0\.0\.1/.test(value)) return value;
   const parsed = new URL(value);
   parsed.searchParams.set("sslmode", "no-verify");
   return parsed.toString();
