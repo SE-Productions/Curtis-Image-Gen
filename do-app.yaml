@@ -1,26 +1,4 @@
-# ============================================================================
-# DigitalOcean App Platform spec for Curtis Image Studio
-# ============================================================================
-# Drop-in equivalent of render.yaml. The web service:
-#   - Builds the React frontend (artifacts/curtis-image-studio) and the Express
-#     API server (artifacts/api-server) into a single Node bundle.
-#   - Serves the built frontend statically from the API server.
-#   - Listens on PORT (DO sets this for us; default 8080).
-#   - Health-checks /api/healthz.
-#
-# Required env vars (set in DO dashboard or via API):
-#   DATABASE_URL                        — Postgres connection string
-#   AI_INTEGRATIONS_OPENAI_API_KEY      — OpenAI key (gpt-image-1 + gpt-4o-mini)
-#   AI_INTEGRATIONS_OPENAI_BASE_URL     — e.g. https://api.openai.com/v1
-#   PUBLIC_APP_URL                      — full HTTPS URL of the deployed app
-#   STUDIO_ACCESS_PASSWORD              — gate the studio album (min 8 chars)
-# Optional:
-#   A2E_API_KEY                         — image-to-video render
-#   XAI_API_KEY                         — Grok image alt provider
-#   NVIDIA_API_KEY                      — cinematic prompt direction
-#   COMPOSIO_API_KEY                    — Instagram publishing
-# ============================================================================
-
+# DigitalOcean App Platform — Curtis Image Studio
 name: curtis-image-studio
 region: nyc
 
@@ -28,19 +6,14 @@ services:
   - name: web
     http_port: 8080
     instance_count: 1
-    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_size_slug: apps-s-1vcpu-1gb
     source_dir: /
-    build_command: |
-      pnpm install --frozen-lockfile &&
-      PORT=5173 BASE_PATH=/ pnpm --filter @workspace/curtis-image-studio run build &&
-      pnpm --filter @workspace/api-server run build
-    preDeployCommand: pnpm --filter @workspace/db run push-force
-    run_command: |
-      SERVE_STUDIO_STATIC=true node --enable-source-maps artifacts/api-server/dist/index.mjs
+    build_command: npm ci && npm run build
+    run_command: npx vite preview --host 0.0.0.0 --port 8080
     health_check:
-      http_path: /api/healthz
+      http_path: /
       port: 8080
-      initial_delay_seconds: 30
+      initial_delay_seconds: 20
       period_seconds: 30
       timeout_seconds: 5
       success_threshold: 1
@@ -48,66 +21,19 @@ services:
     envs:
       - key: NODE_ENV
         value: production
-      - key: SERVE_STUDIO_STATIC
-        value: "true"
       - key: PORT
         value: "8080"
-      - key: BASE_PATH
-        value: "/"
-      - key: LOG_LEVEL
-        value: info
-      # --- required at runtime, must be set in DO dashboard ---
-      - key: PUBLIC_APP_URL
+      - key: BETTER_AUTH_URL
         scope: RUN_TIME
         type: GENERAL
       - key: DATABASE_URL
-        scope: RUN_TIME
-        type: GENERAL
-      - key: AI_INTEGRATIONS_OPENAI_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: AI_INTEGRATIONS_OPENAI_BASE_URL
-        scope: RUN_TIME
-        type: GENERAL
-      - key: SESSION_SECRET
-        scope: RUN_TIME
-        type: SECRET
-        value: ""   # set in DO dashboard; 32+ random bytes
-      - key: STUDIO_ACCESS_PASSWORD
-        scope: RUN_TIME
-        type: SECRET
-      # --- optional providers, set if you have the key ---
-      - key: A2E_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: XAI_API_KEY
         scope: RUN_TIME
         type: SECRET
       - key: NVIDIA_API_KEY
         scope: RUN_TIME
         type: SECRET
-      - key: COMPOSIO_API_KEY
-        scope: RUN_TIME
-        type: SECRET
       - key: NVIDIA_PROMPT_MODEL
         value: meta/llama-3.1-70b-instruct
+      - key: XAI_API_KEY
         scope: RUN_TIME
-        type: GENERAL
-
-# ============================================================================
-# Database (commented out — uncomment or create separately and wire DATABASE_URL)
-# ============================================================================
-# databases:
-#   - name: curtis-image-studio-db
-#     engine: PG
-#     version: "16"
-#     size_slug: db-s-1vcpu-1gb
-#     num_nodes: 1
-
-# ============================================================================
-# Workers (none — all work is request-driven in this app)
-# ============================================================================
-
-# ============================================================================
-# Static sites (none — the API server serves the built frontend in production)
-# ============================================================================
+        type: SECRET

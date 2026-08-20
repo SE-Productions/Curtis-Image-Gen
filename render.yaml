@@ -3,35 +3,17 @@ services:
     name: curtis-image-studio
     runtime: node
     plan: free
-    buildCommand: >-
-      pnpm install --frozen-lockfile &&
-      PORT=5173 BASE_PATH=/ pnpm --filter @workspace/curtis-image-studio run build &&
-      pnpm --filter @workspace/api-server run build
-    preDeployCommand: pnpm --filter @workspace/db run migrate
-    startCommand: SERVE_STUDIO_STATIC=true node --enable-source-maps artifacts/api-server/dist/index.mjs
-    healthCheckPath: /api/healthz
+    buildCommand: npm ci && npm run build
+    startCommand: npx vite preview --host 0.0.0.0 --port 8080
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
-      - key: SERVE_STUDIO_STATIC
-        value: "true"
       - key: PORT
-        value: "10000"
-      - key: PUBLIC_APP_URL
-        sync: false
-      - key: SESSION_SECRET
-        generateValue: true
-      - key: STUDIO_ACCESS_PASSWORD
+        value: "8080"
+      - key: BETTER_AUTH_URL
         sync: false
       - key: DATABASE_URL
-        sync: false
-      - key: AI_INTEGRATIONS_OPENAI_API_KEY
-        sync: false
-      - key: AI_INTEGRATIONS_OPENAI_BASE_URL
-        sync: false
-      - key: A2E_API_KEY
-        sync: false
-      - key: COMPOSIO_API_KEY
         sync: false
       - key: NVIDIA_API_KEY
         sync: false
