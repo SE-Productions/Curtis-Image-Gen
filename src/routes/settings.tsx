@@ -24,6 +24,14 @@ function SettingsPage() {
   const [userId, setUserId] = useState("");
   const [nvidiaKey, setNvidiaKey] = useState("");
   const [saving, setSaving] = useState(false);
+  const [composio, setComposio] = useState<{
+    ok: boolean;
+    keyPresent: boolean;
+    connected: boolean;
+    accountCount: number;
+    accounts: Array<{ id: string; status: string; username: string | null; disabled: boolean }>;
+    error: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (isPending || !user) return;
@@ -32,6 +40,19 @@ function SettingsPage() {
       setCaps(s.capabilities);
       setUserId(s.settings.instagramUserId);
     });
+    void fetch("/api/composio/status")
+      .then((r) => r.json())
+      .then(setComposio)
+      .catch(() =>
+        setComposio({
+          ok: false,
+          keyPresent: false,
+          connected: false,
+          accountCount: 0,
+          accounts: [],
+          error: "Could not reach Composio",
+        }),
+      );
   }, [isPending, user]);
 
   if (!user && !isPending) {
@@ -86,6 +107,53 @@ function SettingsPage() {
     <AppShell eyebrow="Settings" nvidia={caps?.nvidia}>
       <h2 className="mb-6 font-serif text-3xl tracking-tight">Studio</h2>
       <div className="space-y-4">
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Instagram className="size-4 text-primary" />
+              <h3 className="font-serif text-xl">Composio Instagram</h3>
+              {composio?.connected ? (
+                <Badge tone="ok">
+                  <CheckCircle2 className="size-3" />
+                  Connected
+                </Badge>
+              ) : composio?.ok ? (
+                <Badge>No IG account</Badge>
+              ) : (
+                <Badge>{composio?.keyPresent ? "Key error" : "Not configured"}</Badge>
+              )}
+            </div>
+            <p className="text-sm text-muted">
+              Daily drops use the Instagram account connected in Composio. This page only
+              checks the connection — it does not publish.
+            </p>
+            {composio?.error ? (
+              <p className="text-sm text-primary">{composio.error}</p>
+            ) : null}
+            {composio?.accounts?.length ? (
+              <ul className="space-y-2 text-sm">
+                {composio.accounts.map((account) => (
+                  <li
+                    key={account.id}
+                    className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2"
+                  >
+                    <span>
+                      {account.username ? `@${account.username.replace(/^@/, "")}` : account.id.slice(0, 12)}
+                    </span>
+                    <Badge tone={account.status === "ACTIVE" && !account.disabled ? "ok" : "muted"}>
+                      {account.disabled ? "Disabled" : account.status}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">
+                {composio ? "No Instagram account is linked to this Composio key yet." : "Checking Composio…"}
+              </p>
+            )}
+          </CardBody>
+        </Card>
+
         <Card>
           <CardBody className="space-y-3">
             <div className="flex items-center gap-2">
