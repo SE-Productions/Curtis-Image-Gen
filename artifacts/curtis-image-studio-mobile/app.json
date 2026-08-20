@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Curtis Image Studio Mobile",
+    "slug": "curtis-image-studio-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon_2.png",
+    "scheme": "curtis-image-studio-mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon_2.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Curtis Image Studio uses your photo library to choose a face reference.",
+        "NSPhotoLibraryAddUsageDescription": "Curtis Image Studio saves your generated images and videos to your photo library."
+      }
+    },
+    "android": {},
+    "web": {
+      "favicon": "./assets/images/icon_2.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Curtis Image Studio uses your photo library to choose a face reference."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Curtis Image Studio accesses your photo library to save generated media.",
+          "savePhotosPermission": "Curtis Image Studio saves generated media to your photo library."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
