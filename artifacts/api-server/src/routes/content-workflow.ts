@@ -528,10 +528,27 @@ router.post(
       });
       return;
     }
-    await db
-      .update(contentItems)
-      .set({ scheduledFor, status: "scheduled", updatedAt: new Date() })
-      .where(eq(contentItems.id, item.id));
+    try {
+      await db
+        .update(contentItems)
+        .set({ scheduledFor, status: "scheduled", updatedAt: new Date() })
+        .where(eq(contentItems.id, item.id));
+    } catch (error) {
+      const databaseError = error as {
+        code?: string;
+        cause?: { code?: string };
+      };
+      if (
+        databaseError.code === "23505" ||
+        databaseError.cause?.code === "23505"
+      ) {
+        res.status(409).json({
+          error: "Another item already occupies that calendar day.",
+        });
+        return;
+      }
+      throw error;
+    }
     res.sendStatus(204);
   },
 );
@@ -567,7 +584,22 @@ router.post(
       res.status(400).json({ error: "A published post id is required." });
       return;
     }
-    await db
+    const [item] = await db
+      .select({ id: contentItems.id, status: contentItems.status })
+      .from(contentItems)
+      .where(eq(contentItems.id, params.data.contentItemId))
+      .limit(1);
+    if (!item) {
+      res.status(404).json({ error: "Content item not found." });
+      return;
+    }
+    if (!["approved", "scheduled"].includes(item.status)) {
+      res.status(409).json({
+        error: "Only approved or scheduled content can record publication.",
+      });
+      return;
+    }
+    const [updated] = await db
       .update(contentItems)
       .set({
         status: body.data.status,
@@ -580,7 +612,19 @@ router.post(
             : null,
         updatedAt: new Date(),
       })
-      .where(eq(contentItems.id, params.data.contentItemId));
+      .where(
+        and(
+          eq(contentItems.id, params.data.contentItemId),
+          inArray(contentItems.status, ["approved", "scheduled"]),
+        ),
+      )
+      .returning({ id: contentItems.id });
+    if (!updated) {
+      res.status(409).json({
+        error: "The content item changed before publication could be recorded.",
+      });
+      return;
+    }
     res.sendStatus(204);
   },
 );

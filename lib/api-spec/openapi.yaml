@@ -886,6 +886,8 @@ components:
           type: string
           minLength: 1
           maxLength: 2200
+        contentItemId:
+          type: string
     InstagramPublication:
       type: object
       required: [postId, publicImageUrl, status]

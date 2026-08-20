@@ -268,7 +268,8 @@ export const publishStudioImageToInstagramBodyCaptionMax = 2200;
 
 export const PublishStudioImageToInstagramBody = zod.object({
   "imageDataUrl": zod.string().max(publishStudioImageToInstagramBodyImageDataUrlMax),
-  "caption": zod.string().min(1).max(publishStudioImageToInstagramBodyCaptionMax)
+  "caption": zod.string().min(1).max(publishStudioImageToInstagramBodyCaptionMax),
+  "contentItemId": zod.string().optional()
 })
 
 export const PublishStudioImageToInstagramResponse = zod.object({

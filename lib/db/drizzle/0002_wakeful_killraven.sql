@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "content_items_one_publication_per_day_unique" ON "content_items" USING btree ((("scheduled_for" AT TIME ZONE 'UTC')::date)) WHERE "content_items"."scheduled_for" IS NOT NULL AND "content_items"."status" IN ('scheduled', 'published');

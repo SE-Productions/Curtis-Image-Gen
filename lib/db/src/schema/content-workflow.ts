@@ -7,6 +7,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { scenes } from "./scenes";
@@ -40,33 +41,43 @@ export const contentPlans = pgTable(
   (table) => [uniqueIndex("content_plans_week_start_unique").on(table.weekStart)],
 );
 
-export const contentItems = pgTable("content_items", {
-  id: text("id").primaryKey(),
-  planId: text("plan_id")
-    .notNull()
-    .references(() => contentPlans.id, { onDelete: "cascade" }),
-  planDate: date("plan_date").notNull(),
-  title: text("title").notNull(),
-  concept: text("concept").notNull(),
-  prompt: text("prompt").notNull(),
-  caption: text("caption").notNull(),
-  format: text("format").notNull(),
-  status: text("status").notNull().default("idea"),
-  provider: text("provider").notNull().default("openai"),
-  selectedSceneId: text("selected_scene_id").references(() => scenes.id, {
-    onDelete: "set null",
-  }),
-  scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
-  publishedAt: timestamp("published_at", { withTimezone: true }),
-  instagramPostId: text("instagram_post_id"),
-  failureReason: text("failure_reason"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const contentItems = pgTable(
+  "content_items",
+  {
+    id: text("id").primaryKey(),
+    planId: text("plan_id")
+      .notNull()
+      .references(() => contentPlans.id, { onDelete: "cascade" }),
+    planDate: date("plan_date").notNull(),
+    title: text("title").notNull(),
+    concept: text("concept").notNull(),
+    prompt: text("prompt").notNull(),
+    caption: text("caption").notNull(),
+    format: text("format").notNull(),
+    status: text("status").notNull().default("idea"),
+    provider: text("provider").notNull().default("openai"),
+    selectedSceneId: text("selected_scene_id").references(() => scenes.id, {
+      onDelete: "set null",
+    }),
+    scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    instagramPostId: text("instagram_post_id"),
+    failureReason: text("failure_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("content_items_one_publication_per_day_unique")
+      .on(sql`((${table.scheduledFor} AT TIME ZONE 'UTC')::date)`)
+      .where(
+        sql`${table.scheduledFor} IS NOT NULL AND ${table.status} IN ('scheduled', 'published')`,
+      ),
+  ],
+);
 
 export const contentVariations = pgTable(
   "content_variations",

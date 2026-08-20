@@ -25,6 +25,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface InstagramPublishDialogProps {
   imageDataUrl: string;
+  contentItemId?: string;
   context?: {
     title?: string;
     visualDescription?: string;
@@ -39,6 +40,7 @@ interface InstagramPublishDialogProps {
 
 export function InstagramPublishDialog({
   imageDataUrl,
+  contentItemId,
   context,
   trigger,
   onPublished,
@@ -109,7 +111,8 @@ export function InstagramPublishDialog({
     publishMutation.mutate({
       data: {
         imageDataUrl,
-        caption: caption.trim()
+        caption: caption.trim(),
+        contentItemId,
       }
     }, {
       onSuccess: (data) => {

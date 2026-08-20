@@ -5,7 +5,6 @@ import {
   getGetContentPlanQueryKey,
   useScheduleContentItem,
   useUnscheduleContentItem,
-  useRecordContentPublication,
   ContentItem
 } from "@workspace/api-client-react";
 import { format, parseISO, isSameDay } from "date-fns";
@@ -46,15 +45,6 @@ export default function Calendar() {
     mutation: {
       onSuccess: () => {
         toast.success("Item unscheduled");
-        queryClient.invalidateQueries({ queryKey: getGetContentPlanQueryKey({ weekStart }) });
-      }
-    }
-  });
-
-  const recordPublicationMutation = useRecordContentPublication({
-    mutation: {
-      onSuccess: () => {
-        toast.success("Publication recorded");
         queryClient.invalidateQueries({ queryKey: getGetContentPlanQueryKey({ weekStart }) });
       }
     }
@@ -237,6 +227,7 @@ export default function Calendar() {
                                     {scene && (
                                       <InstagramPublishDialog 
                                         imageDataUrl={scene.imageDataUrl}
+                                        contentItemId={item.id}
                                         context={{
                                           prompt: item.prompt,
                                           aspectRatio: item.format === "feed" ? "1:1" : "9:16",
@@ -247,22 +238,14 @@ export default function Calendar() {
                                             <Instagram className="w-4 h-4 mr-2" /> Publish Now
                                           </Button>
                                         }
-                                        onPublished={(postId) => {
-                                          recordPublicationMutation.mutate({
-                                            contentItemId: item.id,
-                                            data: {
-                                              status: "published",
-                                              postId
-                                            }
+                                        onPublished={() => {
+                                          queryClient.invalidateQueries({
+                                            queryKey: getGetContentPlanQueryKey({ weekStart })
                                           });
                                         }}
-                                        onPublishFailed={(failureReason) => {
-                                          recordPublicationMutation.mutate({
-                                            contentItemId: item.id,
-                                            data: {
-                                              status: "failed",
-                                              failureReason
-                                            }
+                                        onPublishFailed={() => {
+                                          queryClient.invalidateQueries({
+                                            queryKey: getGetContentPlanQueryKey({ weekStart })
                                           });
                                         }}
                                       />

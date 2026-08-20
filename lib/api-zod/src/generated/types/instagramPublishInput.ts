@@ -14,4 +14,5 @@ export interface InstagramPublishInput {
      * @maxLength 2200
      */
   caption: string;
+  contentItemId?: string;
 }

@@ -3,7 +3,7 @@ import { unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Router, type IRouter, type Request } from "express";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { Composio } from "@composio/core";
 import {
   CreateStudioSceneBody,
@@ -24,7 +24,7 @@ import {
   StartStudioVideoBody,
   StartStudioVideoResponse,
 } from "@workspace/api-zod";
-import { db, scenes } from "@workspace/db";
+import { contentItems, contentVariations, db, scenes } from "@workspace/db";
 import {
   editImages,
   generateImageBuffer,
@@ -432,14 +432,26 @@ router.post("/studio/scenes", requireStudioSession, async (req, res): Promise<vo
       })
       .returning();
 
-    const excessScenes = await tx
-      .select({ id: scenes.id })
-      .from(scenes)
-      .orderBy(desc(scenes.createdAt))
-      .offset(maxStudioScenes);
+    const [allScenes, referencedScenes] = await Promise.all([
+      tx
+        .select({ id: scenes.id })
+        .from(scenes)
+        .orderBy(desc(scenes.createdAt)),
+      tx
+        .select({ sceneId: contentVariations.sceneId })
+        .from(contentVariations),
+    ]);
+    const referencedSceneIds = new Set(
+      referencedScenes.map(({ sceneId }) => sceneId),
+    );
+    const excessScenes = allScenes
+      .slice(maxStudioScenes)
+      .filter(({ id }) => !referencedSceneIds.has(id));
 
     if (excessScenes.length > 0) {
-      await tx.delete(scenes).where(inArray(scenes.id, excessScenes.map(({ id }) => id)));
+      await tx
+        .delete(scenes)
+        .where(inArray(scenes.id, excessScenes.map(({ id }) => id)));
     }
 
     return scene;
@@ -449,6 +461,17 @@ router.post("/studio/scenes", requireStudioSession, async (req, res): Promise<vo
 });
 
 router.delete("/studio/scenes", requireStudioSession, async (_req, res): Promise<void> => {
+  const [reference] = await db
+    .select({ id: contentVariations.id })
+    .from(contentVariations)
+    .limit(1);
+  if (reference) {
+    res.status(409).json({
+      error:
+        "Planned content is using one or more scenes. Delete those content items before clearing the library.",
+    });
+    return;
+  }
   await db.delete(scenes);
   res.sendStatus(204);
 });
@@ -457,6 +480,19 @@ router.delete("/studio/scenes/:sceneId", requireStudioSession, async (req, res):
   const params = DeleteStudioSceneParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid scene id." });
+    return;
+  }
+
+  const [reference] = await db
+    .select({ id: contentVariations.id })
+    .from(contentVariations)
+    .where(eq(contentVariations.sceneId, params.data.sceneId))
+    .limit(1);
+  if (reference) {
+    res.status(409).json({
+      error:
+        "This scene is attached to planned content and cannot be deleted.",
+    });
     return;
   }
 
@@ -472,6 +508,28 @@ router.delete("/studio/scenes/:sceneId", requireStudioSession, async (req, res):
 
   res.sendStatus(204);
 });
+
+async function recordPublicationFailure(
+  contentItemId: string | undefined,
+  failureReason: string,
+): Promise<void> {
+  if (!contentItemId) return;
+  await db
+    .update(contentItems)
+    .set({
+      status: "failed",
+      failureReason,
+      publishedAt: null,
+      instagramPostId: null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(contentItems.id, contentItemId),
+        inArray(contentItems.status, ["approved", "scheduled"]),
+      ),
+    );
+}
 
 router.get(
   "/studio/instagram/status",
@@ -529,6 +587,7 @@ router.post("/studio/post-copy", requireStudioSession, async (req, res): Promise
         ? "Instagram Story"
         : "Instagram feed post";
 
+  let publishedPostId: string | null = null;
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -733,6 +792,36 @@ router.post(
     return;
   }
 
+  let imageDataUrl = parsed.data.imageDataUrl;
+  if (parsed.data.contentItemId) {
+    const [workflowItem] = await db
+      .select({
+        id: contentItems.id,
+        status: contentItems.status,
+        selectedSceneId: contentItems.selectedSceneId,
+        imageDataUrl: scenes.imageDataUrl,
+      })
+      .from(contentItems)
+      .leftJoin(scenes, eq(contentItems.selectedSceneId, scenes.id))
+      .where(eq(contentItems.id, parsed.data.contentItemId))
+      .limit(1);
+    if (!workflowItem) {
+      res.status(404).json({ error: "Planned content item not found." });
+      return;
+    }
+    if (
+      !workflowItem.selectedSceneId ||
+      !workflowItem.imageDataUrl ||
+      !["approved", "scheduled"].includes(workflowItem.status)
+    ) {
+      res.status(409).json({
+        error: "Approve a saved scene before publishing this content item.",
+      });
+      return;
+    }
+    imageDataUrl = workflowItem.imageDataUrl;
+  }
+
   const publicAppUrl = getPublicAppUrl(req);
   if (!publicAppUrl) {
     res.status(409).json({
@@ -742,8 +831,9 @@ router.post(
     return;
   }
 
+  let publishedPostId: string | null = null;
   try {
-    const assetId = createHostedAsset(parsed.data.imageDataUrl);
+    const assetId = createHostedAsset(imageDataUrl);
     const publicImageUrl = `${publicAppUrl}/api/studio/assets/${assetId}`;
     const composio = getComposioClient();
     const mediaContainer = await composio.tools.execute(
@@ -772,6 +862,31 @@ router.post(
     if (!postId) {
       throw new Error("Instagram did not return a published post.");
     }
+    publishedPostId = postId;
+
+    if (parsed.data.contentItemId) {
+      const [recorded] = await db
+        .update(contentItems)
+        .set({
+          status: "published",
+          instagramPostId: postId,
+          publishedAt: new Date(),
+          failureReason: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(contentItems.id, parsed.data.contentItemId),
+            inArray(contentItems.status, ["approved", "scheduled"]),
+          ),
+        )
+        .returning({ id: contentItems.id });
+      if (!recorded) {
+        throw new Error(
+          "Instagram published the post, but the local workflow result could not be recorded.",
+        );
+      }
+    }
 
     res.json(
       PublishStudioImageToInstagramResponse.parse({
@@ -782,9 +897,23 @@ router.post(
     );
   } catch (error) {
     req.log.error({ err: error }, "Instagram publication failed");
+    if (!publishedPostId) {
+      await recordPublicationFailure(
+        parsed.data.contentItemId,
+        error instanceof Error
+          ? error.message.slice(0, 1000)
+          : "Instagram publication failed.",
+      ).catch((recordError) => {
+        req.log.error(
+          { err: recordError },
+          "Instagram publication failure could not be recorded",
+        );
+      });
+    }
     res.status(502).json({
-      error:
-        "Instagram could not publish this image. Confirm that the connected account is a Business or Creator account and try again.",
+      error: publishedPostId
+        ? `Instagram published post ${publishedPostId}, but the local workflow could not record it. Use the publication record recovery endpoint before retrying.`
+        : "Instagram could not publish this image. Confirm that the connected account is a Business or Creator account and try again.",
     });
   }
   },
