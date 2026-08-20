@@ -145,11 +145,34 @@ function SettingsPage() {
     }
   }
 
-  // Load studio state + Composio status on mount
+  // Load studio state + Composio status on mount.
+  // Also auto-populate composio_account_id in the DB if Composio has an active
+  // Instagram account but the DB doesn't — so publishPost can find it.
   useEffect(() => {
-    void getStudioState().then((s) => {
+    void getStudioState().then(async (s) => {
       setSettings(s.settings);
       setCaps(s.capabilities);
+
+      // Auto-save composio_account_id if an active IG account exists in Composio
+      if (s.settings.composioAccountId) return;
+      try {
+        const res = await fetch("/api/composio/status", { cache: "no-store" });
+        if (!res.ok) return;
+        const body = (await res.json()) as ComposioStatus;
+        const active = body.accounts.find(
+          (a) => a.status === "ACTIVE" && !a.disabled,
+        );
+        if (!active) return;
+        await saveSettings({
+          data: { composioAccountId: active.id },
+        });
+        setSettings((prev) =>
+          prev ? { ...prev, composioAccountId: active.id } : prev,
+        );
+        toast.success(`Instagram (${active.username ?? active.id}) saved`);
+      } catch {
+        // Non-fatal — just skip auto-populate
+      }
     });
     void refreshComposio().catch(() =>
       setComposio({
@@ -217,21 +240,6 @@ function SettingsPage() {
       setSaving(false);
     }
   }
-
-  // Auto-populate composioAccountId: if DB has none but Composio has an active
-  // Instagram account, save it so publishPost can find it without manual fiddling.
-  useEffect(() => {
-    if (!settings || !composio) return;
-    if (settings.composioAccountId) return; // already saved — nothing to do
-    const active = composio.accounts.find(
-      (a) => a.status === "ACTIVE" && !a.disabled,
-    );
-    if (!active) return;
-    void persist({ composioAccountId: active.id }).then(() => {
-      toast.success(`Instagram (${active.username ?? active.id}) saved`);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings, composio]);
 
   const selectedAccount =
     composio?.accounts.find((account) => account.id === settings.composioAccountId) ??
