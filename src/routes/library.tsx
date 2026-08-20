@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { format, parseISO } from "date-fns";
+import { formatDay } from "@/lib/dates";
 import { Images } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -51,7 +51,7 @@ function LibraryPage() {
               <figcaption className="space-y-1 p-3">
                 <p className="truncate text-sm font-medium">{post.title}</p>
                 <p className="text-[11px] text-muted">
-                  {format(parseISO(post.planDate), "MMM d")}
+                  {formatDay(post.planDate, "MMM d")}
                 </p>
                 <Badge tone={post.status === "published" ? "ok" : "muted"}>
                   {post.status === "scheduled" ? "ready" : post.status}

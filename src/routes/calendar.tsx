@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { format, parseISO } from "date-fns";
 import { CalendarDays } from "lucide-react";
+import { asDay, formatDay } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
@@ -60,12 +60,12 @@ function CalendarPage() {
   }, [posts]);
 
   const grouped = posts.reduce<Record<string, StudioPost[]>>((acc, post) => {
-    (acc[post.planDate] ??= []).push(post);
+    (acc[asDay(post.planDate)] ??= []).push(post);
     return acc;
   }, {});
   const dates = Object.keys(grouped).sort();
   const weekLabel = dates[0]
-    ? `Week of ${format(parseISO(dates[0]), "MMM d")}`
+    ? `Week of ${formatDay(dates[0], "MMM d")}`
     : null;
 
   return (
@@ -99,10 +99,10 @@ function CalendarPage() {
             <section key={date} className="flex flex-col gap-4 md:flex-row md:gap-6">
               <div className="md:w-32 md:shrink-0 md:pt-2">
                 <p className="text-sm font-medium uppercase tracking-[0.18em] text-muted">
-                  {format(parseISO(date), "EEEE")}
+                  {formatDay(date, "EEEE")}
                 </p>
                 <p className="mt-1 font-serif text-3xl leading-none">
-                  {format(parseISO(date), "d")}
+                  {formatDay(date, "d")}
                 </p>
               </div>
               <div className="min-w-0 flex-1 space-y-4">

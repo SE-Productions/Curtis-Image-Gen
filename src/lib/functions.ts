@@ -8,7 +8,7 @@ import {
   renderFaceLockedVideo,
   writeCalendarPlan,
 } from "@/lib/ai";
-import { dateRange, todayInZone, zonedDateTime } from "@/lib/dates";
+import { asDay, dateRange, todayInZone, zonedDateTime } from "@/lib/dates";
 import { verifyInstagramToken } from "@/lib/instagram";
 import { publishViaComposio } from "@/lib/composio";
 import { loadVaultKeys } from "@/lib/vault";
@@ -40,7 +40,7 @@ type PostRow = {
 function mapPost(row: PostRow): StudioPost {
   return {
     id: row.id,
-    planDate: String(row.plan_date).slice(0, 10),
+    planDate: asDay(row.plan_date),
     title: row.title,
     topic: row.topic,
     concept: row.concept,

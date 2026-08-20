@@ -1,5 +1,32 @@
+import { format, parseISO } from "date-fns";
+
 function pad(n: number) {
   return String(n).padStart(2, "0");
+}
+
+export function asDay(value: unknown): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const text = String(value ?? "");
+  const match = text.match(/(\d{4}-\d{2}-\d{2})/);
+  if (match) return match[1];
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return text.slice(0, 10);
+}
+
+export function formatDay(value: unknown, pattern: string): string {
+  const day = asDay(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
+  return format(parseISO(day), pattern);
+}
+
+export function formatWhen(value: unknown, pattern: string): string {
+  const date =
+    value instanceof Date ? value : new Date(typeof value === "string" ? value : String(value ?? ""));
+  if (Number.isNaN(date.getTime())) return "";
+  return format(date, pattern);
 }
 
 export function todayInZone(timeZone: string): string {
@@ -47,7 +74,7 @@ export function zonedDateTime(
 }
 
 export function addDays(date: string, days: number): string {
-  const [y, m, d] = date.split("-").map(Number);
+  const [y, m, d] = asDay(date).split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d + days));
   return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
 }

@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { formatDay, formatWhen } from "@/lib/dates";
 import { CheckCircle2, Clock, ImageOff, Instagram, Loader2, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export function PostCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
-                {format(parseISO(post.planDate), "EEEE d MMM")}
+                {formatDay(post.planDate, "EEEE d MMM")}
               </p>
               <h3 className="mt-0.5 font-serif text-xl leading-tight">{post.title}</h3>
             </div>
@@ -84,7 +84,7 @@ export function PostCard({
             {post.scheduledFor && post.status !== "published" ? (
               <span className="inline-flex items-center gap-1 text-xs text-muted">
                 <Clock className="size-3.5" />
-                {format(parseISO(post.scheduledFor), "h:mm a")}
+                {formatWhen(post.scheduledFor, "h:mm a")}
               </span>
             ) : null}
             {post.status === "published" ? (
