@@ -24,7 +24,13 @@ import {
   StartStudioVideoBody,
   StartStudioVideoResponse,
 } from "@workspace/api-zod";
-import { contentItems, contentVariations, db, scenes } from "@workspace/db";
+import {
+  contentItems,
+  contentVariations,
+  creatorProfiles,
+  db,
+  scenes,
+} from "@workspace/db";
 import {
   editImages,
   generateImageBuffer,
@@ -347,6 +353,10 @@ router.get("/studio/capabilities", (_req, res): void => {
       provider: process.env.NVIDIA_API_KEY
         ? "OpenAI image generation + NVIDIA cinematic direction"
         : "OpenAI image generation + cinematic direction",
+      openaiConfigured: Boolean(
+        process.env.AI_INTEGRATIONS_OPENAI_API_KEY &&
+          process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      ),
       grokConfigured: Boolean(process.env.XAI_API_KEY),
     }),
   );
@@ -586,6 +596,11 @@ router.post("/studio/post-copy", requireStudioSession, async (req, res): Promise
       : parsed.data.format === "story"
         ? "Instagram Story"
         : "Instagram feed post";
+  const [creatorDna] = await db
+    .select()
+    .from(creatorProfiles)
+    .where(eq(creatorProfiles.id, "curtis-default"))
+    .limit(1);
 
   let publishedPostId: string | null = null;
   try {
@@ -608,6 +623,15 @@ router.post("/studio/post-copy", requireStudioSession, async (req, res): Promise
               ? `Visual direction: ${parsed.data.visualDescription}`
               : "",
             `Generation prompt: ${parsed.data.prompt}`,
+            creatorDna
+              ? [
+                  `Creator voice: ${creatorDna.voice}`,
+                  `Audience: ${creatorDna.audience}`,
+                  `Core themes: ${creatorDna.themes.join(", ")}`,
+                  `Offers: ${creatorDna.offers || "None specified"}`,
+                  `Goals: ${creatorDna.goals}`,
+                ].join("\n")
+              : "",
           ]
             .filter(Boolean)
             .join("\n"),

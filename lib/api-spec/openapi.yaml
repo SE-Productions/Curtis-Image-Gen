@@ -192,6 +192,12 @@ paths:
       responses:
         "204":
           description: Generated scene deleted
+        "409":
+          description: Scene is retained because it belongs to a content workflow item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "401":
           description: Studio is locked
           content:
@@ -452,6 +458,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreatorDna"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
     put:
       operationId: updateCreatorDna
       tags: [studio]
@@ -475,6 +483,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-plan:
     get:
       operationId: getContentPlan
@@ -494,6 +504,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ContentPlanResult"
+        "400":
+          description: Invalid week start date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-plan/generate:
     post:
       operationId: generateContentPlan
@@ -524,6 +542,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Existing workflow work prevents replacing this plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-items/{contentItemId}:
     patch:
       operationId: updateContentItem
@@ -550,6 +576,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid content update
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
+        "409":
+          description: Item cannot be edited in its current workflow state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       operationId: deleteContentItem
       tags: [studio]
@@ -559,6 +599,26 @@ paths:
       responses:
         "204":
           description: Content item deleted
+        "400":
+          description: Invalid content item id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
+        "404":
+          description: Content item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Item cannot be deleted in its current workflow state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /studio/content-items/{contentItemId}/variations:
     post:
       operationId: addContentVariation
@@ -575,12 +635,26 @@ paths:
       responses:
         "204":
           description: Generated scene linked to the content item
+        "400":
+          description: Invalid variation request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Content item or scene not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Scene is already linked or the item cannot accept variations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-items/{contentItemId}/approve:
     post:
       operationId: approveContentItem
@@ -597,12 +671,20 @@ paths:
       responses:
         "204":
           description: Content item approved
+        "400":
+          description: Invalid approval request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Scene is not a variation of this content item
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-items/{contentItemId}/schedule:
     post:
       operationId: scheduleContentItem
@@ -619,12 +701,20 @@ paths:
       responses:
         "204":
           description: Content item scheduled
+        "400":
+          description: Invalid schedule request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Schedule slot is invalid or already occupied
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
     delete:
       operationId: unscheduleContentItem
       tags: [studio]
@@ -634,6 +724,26 @@ paths:
       responses:
         "204":
           description: Content item unscheduled
+        "400":
+          description: Invalid content item id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Content item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Content item cannot be unscheduled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
   /studio/content-items/{contentItemId}/publication:
     post:
       operationId: recordContentPublication
@@ -650,7 +760,34 @@ paths:
       responses:
         "204":
           description: Publication result recorded
+        "400":
+          description: Invalid publication result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Content item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Content item is not ready to publish
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/StudioLocked"
 components:
+  responses:
+    StudioLocked:
+      description: Studio is locked
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   parameters:
     ContentItemId:
       name: contentItemId
@@ -668,7 +805,7 @@ components:
         - status
     StudioCapabilities:
       type: object
-      required: [imageGeneration, referenceGuidance, provider, grokConfigured]
+      required: [imageGeneration, referenceGuidance, provider, openaiConfigured, grokConfigured]
       properties:
         imageGeneration:
           type: boolean
@@ -676,6 +813,8 @@ components:
           type: boolean
         provider:
           type: string
+        openaiConfigured:
+          type: boolean
         grokConfigured:
           type: boolean
     StudioImageInput:
@@ -1110,6 +1249,7 @@ components:
         scheduledFor:
           type: string
           format: date-time
+          description: UTC timestamp. Its UTC calendar date must equal the content item's planned date.
     RecordContentPublicationInput:
       type: object
       required: [status]
@@ -1128,4 +1268,3 @@ components:
       properties:
         error:
           type: string
-

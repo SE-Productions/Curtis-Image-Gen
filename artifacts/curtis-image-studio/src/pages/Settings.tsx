@@ -430,9 +430,13 @@ export default function SettingsPage() {
                     <Bot className="h-4 w-4" />
                     OpenAI
                   </span>
-                  <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-                    Ready
-                  </Badge>
+                  {capabilities?.openaiConfigured ? (
+                    <Badge className="border-emerald-200 bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+                      Ready
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Not configured</Badge>
+                  )}
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between gap-4">
@@ -450,8 +454,8 @@ export default function SettingsPage() {
                 </div>
                 <p className="text-xs leading-5 text-muted-foreground">
                   OpenAI supports identity-preserving reference images. Grok
-                  Imagine is available for text-to-image scenes when its
-                  server secret is configured.
+                  Imagine is text-to-image only and cannot use a reference
+                  image. Both provider secrets stay on the server.
                 </p>
               </CardContent>
             </Card>

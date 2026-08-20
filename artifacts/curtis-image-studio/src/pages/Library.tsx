@@ -4,11 +4,14 @@ import {
   useGetStudioScenes, 
   getGetStudioScenesQueryKey,
   useDeleteStudioScene,
-  StudioScene
+  useGetContentPlan,
+  getGetContentPlanQueryKey,
+  useGetStudioSession,
+  getGetStudioSessionQueryKey,
 } from "@workspace/api-client-react";
 import { VideoGenerateDialog } from "@/components/video-generate-dialog";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { Download, Trash2, Clock, ImageIcon, Eye, Loader2, Sparkles, Play } from "lucide-react";
+import { Download, Trash2, Clock, ImageIcon, Loader2, Play } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { StudioNavigation } from "@/components/studio-navigation";
 import { Card } from "@/components/ui/card";
@@ -17,14 +20,34 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { InstagramPublishDialog } from "@/components/instagram-publish-dialog";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { getCurrentWeekStart } from "@/lib/date-utils";
 
 export default function Library() {
   const queryClient = useQueryClient();
-  const [selectedScene, setSelectedScene] = useState<StudioScene | null>(null);
+  const weekStart = getCurrentWeekStart();
+  const { data: studioSession, isLoading: sessionLoading } = useGetStudioSession({
+    query: { retry: false, queryKey: getGetStudioSessionQueryKey() },
+  });
+  const canLoadStudio =
+    studioSession?.unlocked === true || studioSession?.required === false;
 
   const { data: scenes, isLoading } = useGetStudioScenes({
-    query: { queryKey: getGetStudioScenesQueryKey() }
+    query: {
+      enabled: canLoadStudio,
+      queryKey: getGetStudioScenesQueryKey(),
+    }
   });
+  const { data: planResult } = useGetContentPlan(
+    { weekStart },
+    {
+      query: {
+        enabled: canLoadStudio,
+        queryKey: getGetContentPlanQueryKey({ weekStart }),
+      },
+    },
+  );
+  const workflowItems = planResult?.plan?.items ?? [];
 
   const deleteSceneMutation = useDeleteStudioScene({
     mutation: {
@@ -68,9 +91,88 @@ export default function Library() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-serif text-3xl tracking-tight text-foreground">Studio Library</h2>
-            <p className="text-sm text-muted-foreground mt-1">All your persisted generated scenes.</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Persistent scenes and this week&apos;s real content workflow.
+            </p>
           </div>
         </div>
+
+        {!sessionLoading && !canLoadStudio ? (
+          <Card className="border-amber-200 bg-amber-50/70 p-6 text-center">
+            <h3 className="font-medium text-foreground">Unlock the private Library</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your generated scenes and workflow status are visible only after unlocking the studio.
+            </p>
+            <Link href="/settings" className="mt-4 inline-flex">
+              <Button>Open Settings</Button>
+            </Link>
+          </Card>
+        ) : (
+          <>
+        {workflowItems.length > 0 && (
+          <section className="mb-10" aria-labelledby="workflow-library-heading">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 id="workflow-library-heading" className="font-serif text-2xl text-foreground">
+                  Content workflow
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Ideas only move forward after you approve a generated scene.
+                </p>
+              </div>
+              <Link href="/planner">
+                <Button variant="outline" size="sm">Review plan</Button>
+              </Link>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {workflowItems.map((item) => {
+                const selectedVariation = item.variations.find(
+                  (variation) => variation.sceneId === item.selectedSceneId,
+                );
+                return (
+                  <Card key={item.id} className="overflow-hidden border-border bg-card">
+                    <div className="relative aspect-[4/3] bg-muted">
+                      {selectedVariation ? (
+                        <img
+                          src={selectedVariation.imageDataUrl}
+                          alt={item.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <ImageIcon className="h-7 w-7 opacity-40" />
+                          <span className="text-xs">No approved scene yet</span>
+                        </div>
+                      )}
+                      <div className="absolute left-2 top-2 flex gap-1">
+                        <Badge variant="secondary" className="bg-background/90 font-mono text-[10px] uppercase backdrop-blur">
+                          {item.format}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="border-border bg-background/90 text-[10px] uppercase backdrop-blur"
+                        >
+                          {item.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="space-y-2 p-3">
+                      <p className="line-clamp-2 text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="line-clamp-2 text-xs text-muted-foreground">{item.concept}</p>
+                      <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground">
+                        <span>{item.planDate}</span>
+                        <span>{item.variations.length} variation{item.variations.length === 1 ? "" : "s"}</span>
+                      </div>
+                      {item.failureReason && (
+                        <p className="line-clamp-2 text-xs text-destructive">{item.failureReason}</p>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {isLoading ? (
           <div className="py-24 flex flex-col items-center justify-center text-center">
@@ -174,6 +276,8 @@ export default function Library() {
               </Card>
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
     </div>

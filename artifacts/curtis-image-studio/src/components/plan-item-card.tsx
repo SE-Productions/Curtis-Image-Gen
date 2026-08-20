@@ -345,12 +345,14 @@ export function PlanItemCard({ item, weekStart, grokConfigured }: PlanItemCardPr
             </div>
           )}
 
-          {item.status === "approved" && (
+          {["approved", "failed"].includes(item.status) && (
             <div className="mt-auto bg-muted/30 p-3 rounded-lg border border-border">
-              <Label className="text-xs mb-2 block">Schedule Publication</Label>
+              <Label className="text-xs mb-2 block">
+                {item.status === "failed" ? "Retry scheduling (UTC)" : "Schedule publication (UTC)"}
+              </Label>
               <div className="flex gap-2">
                 <Input 
-                  type="datetime-local" 
+                  type="time"
                   value={scheduledTime} 
                   onChange={e => setScheduledTime(e.target.value)} 
                   className="h-8 text-xs bg-background"
@@ -359,7 +361,12 @@ export function PlanItemCard({ item, weekStart, grokConfigured }: PlanItemCardPr
                   size="sm" 
                   className="h-8"
                   disabled={!scheduledTime || scheduleMutation.isPending}
-                  onClick={() => scheduleMutation.mutate({ contentItemId: item.id, data: { scheduledFor: new Date(scheduledTime).toISOString() } })}
+                  onClick={() => scheduleMutation.mutate({
+                    contentItemId: item.id,
+                    data: {
+                      scheduledFor: `${item.planDate}T${scheduledTime}:00Z`,
+                    },
+                  })}
                 >
                   <CalendarClock className="w-4 h-4 mr-1" /> Schedule
                 </Button>
@@ -371,7 +378,7 @@ export function PlanItemCard({ item, weekStart, grokConfigured }: PlanItemCardPr
             <div className="mt-auto bg-purple-50 p-3 rounded-lg border border-purple-100 dark:bg-purple-950/20 dark:border-purple-900">
               <p className="text-sm font-medium text-purple-900 dark:text-purple-200 flex items-center">
                 <CalendarClock className="w-4 h-4 mr-1.5" /> 
-                Scheduled for {format(parseISO(item.scheduledFor!), "MMM d, h:mm a")}
+                Scheduled for {format(parseISO(item.scheduledFor!), "MMM d, HH:mm")} UTC
               </p>
             </div>
           )}

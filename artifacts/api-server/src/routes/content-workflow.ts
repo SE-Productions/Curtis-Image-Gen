@@ -43,6 +43,8 @@ import { requireStudioSession } from "../services/studio-session";
 const router: IRouter = Router();
 const creatorProfileId = "curtis-default";
 
+class PlanReplacementConflict extends Error {}
+
 function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null;
 }
@@ -222,6 +224,10 @@ router.post(
       });
       return;
     }
+    if (new Date(`${parsed.data.weekStart}T12:00:00Z`).getUTCDay() !== 1) {
+      res.status(400).json({ error: "Weekly plans must start on a Monday." });
+      return;
+    }
 
     const [profile] = await db
       .select()
@@ -233,6 +239,23 @@ router.post(
         error: "Save Creator DNA before generating a weekly plan.",
       });
       return;
+    }
+    const [existingPlan] = await db
+      .select({ id: contentPlans.id })
+      .from(contentPlans)
+      .where(eq(contentPlans.weekStart, parsed.data.weekStart))
+      .limit(1);
+    if (existingPlan) {
+      const existingItems = await db
+        .select({ status: contentItems.status })
+        .from(contentItems)
+        .where(eq(contentItems.planId, existingPlan.id));
+      if (existingItems.some((item) => item.status !== "idea")) {
+        res.status(409).json({
+          error: "This week already has generated or approved work. Edit the existing plan instead of replacing it.",
+        });
+        return;
+      }
     }
 
     try {
@@ -298,18 +321,31 @@ router.post(
       });
 
       const planId = await db.transaction(async (tx) => {
-        const [existing] = await tx
-          .select({ id: contentPlans.id })
-          .from(contentPlans)
-          .where(eq(contentPlans.weekStart, parsed.data.weekStart))
-          .limit(1);
-        const id = existing?.id ?? randomUUID();
-        if (existing) {
+        const id = existingPlan?.id ?? randomUUID();
+        if (existingPlan) {
+          const currentItems = await tx
+            .select({ id: contentItems.id, status: contentItems.status })
+            .from(contentItems)
+            .where(eq(contentItems.planId, existingPlan.id));
+          if (currentItems.some((item) => item.status !== "idea")) {
+            throw new PlanReplacementConflict();
+          }
           await tx
             .update(contentPlans)
             .set({ brief: parsed.data.brief, updatedAt: new Date() })
-            .where(eq(contentPlans.id, id));
-          await tx.delete(contentItems).where(eq(contentItems.planId, id));
+            .where(eq(contentPlans.id, existingPlan.id));
+          const replaced = await tx
+            .delete(contentItems)
+            .where(
+              and(
+                eq(contentItems.planId, id),
+                eq(contentItems.status, "idea"),
+              ),
+            )
+            .returning({ id: contentItems.id });
+          if (replaced.length !== currentItems.length) {
+            throw new PlanReplacementConflict();
+          }
         } else {
           await tx.insert(contentPlans).values({
             id,
@@ -327,6 +363,12 @@ router.post(
       if (!result) throw new Error("The generated plan could not be loaded.");
       res.json(GenerateContentPlanResponse.parse(result));
     } catch (error) {
+      if (error instanceof PlanReplacementConflict) {
+        res.status(409).json({
+          error: "This week changed while planning. Refresh it before replacing the plan.",
+        });
+        return;
+      }
       req.log.error({ err: error }, "Weekly content plan generation failed");
       res.status(502).json({
         error: "The planning provider could not create this week. Please try again.",
@@ -348,6 +390,22 @@ router.patch(
     if (body.data.provider === "grok" && !process.env.XAI_API_KEY) {
       res.status(409).json({
         error: "Grok image generation is not configured on the server.",
+      });
+      return;
+    }
+
+    const [existing] = await db
+      .select({ id: contentItems.id, status: contentItems.status })
+      .from(contentItems)
+      .where(eq(contentItems.id, params.data.contentItemId))
+      .limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Content item not found." });
+      return;
+    }
+    if (!["idea", "generated", "failed"].includes(existing.status)) {
+      res.status(409).json({
+        error: "Scheduled and published items cannot be edited. Unschedule before editing.",
       });
       return;
     }
@@ -376,6 +434,22 @@ router.delete(
       res.status(400).json({ error: "Invalid content item." });
       return;
     }
+    const [existing] = await db
+      .select({ id: contentItems.id, status: contentItems.status })
+      .from(contentItems)
+      .where(eq(contentItems.id, params.data.contentItemId))
+      .limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Content item not found." });
+      return;
+    }
+    if (["scheduled", "published"].includes(existing.status)) {
+      res.status(409).json({
+        error: "Scheduled and published items cannot be deleted. Unschedule before deleting.",
+      });
+      return;
+    }
+
     const deleted = await db
       .delete(contentItems)
       .where(eq(contentItems.id, params.data.contentItemId))
@@ -401,7 +475,7 @@ router.post(
 
     const [item, scene] = await Promise.all([
       db
-        .select({ id: contentItems.id })
+        .select({ id: contentItems.id, status: contentItems.status })
         .from(contentItems)
         .where(eq(contentItems.id, params.data.contentItemId))
         .limit(1),
@@ -415,30 +489,44 @@ router.post(
       res.status(404).json({ error: "Content item or scene not found." });
       return;
     }
+    const [contentItem] = item;
+    if (!["idea", "generated"].includes(contentItem.status)) {
+      res.status(409).json({
+        error: "Add scene variations before approving an item.",
+      });
+      return;
+    }
 
     const existing = await db
       .select({ id: contentVariations.id })
       .from(contentVariations)
       .where(eq(contentVariations.sceneId, body.data.sceneId))
       .limit(1);
-    if (!existing.length) {
-      const current = await db
-        .select({ id: contentVariations.id })
-        .from(contentVariations)
-        .where(eq(contentVariations.contentItemId, params.data.contentItemId));
-      await db.transaction(async (tx) => {
-        await tx.insert(contentVariations).values({
-          id: randomUUID(),
-          contentItemId: params.data.contentItemId,
-          sceneId: body.data.sceneId,
-          ordinal: current.length + 1,
-        });
-        await tx
-          .update(contentItems)
-          .set({ status: "generated", updatedAt: new Date() })
-          .where(eq(contentItems.id, params.data.contentItemId));
+    if (existing.length) {
+      res.status(409).json({
+        error: "That scene is already used by another planned item.",
       });
+      return;
     }
+    const current = await db
+      .select({ id: contentVariations.id })
+      .from(contentVariations)
+      .where(eq(contentVariations.contentItemId, params.data.contentItemId));
+    await db.transaction(async (tx) => {
+      await tx.insert(contentVariations).values({
+        id: randomUUID(),
+        contentItemId: params.data.contentItemId,
+        sceneId: body.data.sceneId,
+        ordinal: current.length + 1,
+      });
+      await tx
+        .update(contentItems)
+        .set({
+          status: "generated",
+          updatedAt: new Date(),
+        })
+        .where(eq(contentItems.id, params.data.contentItemId));
+    });
     res.sendStatus(204);
   },
 );
@@ -453,7 +541,8 @@ router.post(
       res.status(400).json({ error: "Choose a valid variation." });
       return;
     }
-    const variation = await db
+    const [variation, item] = await Promise.all([
+      db
       .select({ id: contentVariations.id })
       .from(contentVariations)
       .where(
@@ -462,14 +551,30 @@ router.post(
           eq(contentVariations.sceneId, body.data.sceneId),
         ),
       )
-      .limit(1);
+      .limit(1),
+      db
+        .select({ id: contentItems.id, status: contentItems.status })
+        .from(contentItems)
+        .where(eq(contentItems.id, params.data.contentItemId))
+        .limit(1),
+    ]);
     if (!variation.length) {
       res.status(409).json({
         error: "That scene is not a variation of this content item.",
       });
       return;
     }
-    await db
+    if (!item[0]) {
+      res.status(404).json({ error: "Content item not found." });
+      return;
+    }
+    if (item[0].status !== "generated") {
+      res.status(409).json({
+        error: "Only generated items can be approved. Scheduled and published items keep their approval.",
+      });
+      return;
+    }
+    const [approved] = await db
       .update(contentItems)
       .set({
         selectedSceneId: body.data.sceneId,
@@ -478,7 +583,17 @@ router.post(
         failureReason: null,
         updatedAt: new Date(),
       })
-      .where(eq(contentItems.id, params.data.contentItemId));
+      .where(
+        and(
+          eq(contentItems.id, params.data.contentItemId),
+          eq(contentItems.status, "generated"),
+        ),
+      )
+      .returning({ id: contentItems.id });
+    if (!approved) {
+      res.status(409).json({ error: "This item changed before it could be approved." });
+      return;
+    }
     res.sendStatus(204);
   },
 );
@@ -494,6 +609,10 @@ router.post(
       return;
     }
     const scheduledFor = new Date(body.data.scheduledFor);
+    if (Number.isNaN(scheduledFor.getTime())) {
+      res.status(400).json({ error: "Choose a valid publication time." });
+      return;
+    }
     const day = scheduledFor.toISOString().slice(0, 10);
     const dayStart = new Date(`${day}T00:00:00.000Z`);
     const dayEnd = new Date(dayStart);
@@ -504,9 +623,15 @@ router.post(
       .from(contentItems)
       .where(eq(contentItems.id, params.data.contentItemId))
       .limit(1);
-    if (!item?.selectedSceneId || !["approved", "scheduled"].includes(item.status)) {
+    if (!item?.selectedSceneId || !["approved", "failed"].includes(item.status)) {
       res.status(409).json({
         error: "Approve one generated variation before scheduling it.",
+      });
+      return;
+    }
+    if (day !== item.planDate) {
+      res.status(409).json({
+        error: "Schedule this item on its planned calendar day.",
       });
       return;
     }
@@ -528,27 +653,17 @@ router.post(
       });
       return;
     }
-    try {
-      await db
-        .update(contentItems)
-        .set({ scheduledFor, status: "scheduled", updatedAt: new Date() })
-        .where(eq(contentItems.id, item.id));
-    } catch (error) {
-      const databaseError = error as {
-        code?: string;
-        cause?: { code?: string };
-      };
-      if (
-        databaseError.code === "23505" ||
-        databaseError.cause?.code === "23505"
-      ) {
-        res.status(409).json({
-          error: "Another item already occupies that calendar day.",
-        });
-        return;
-      }
-      throw error;
-    }
+    await db
+      .update(contentItems)
+      .set({
+        scheduledFor,
+        status: "scheduled",
+        publishedAt: null,
+        instagramPostId: null,
+        failureReason: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(contentItems.id, item.id));
     res.sendStatus(204);
   },
 );
@@ -562,9 +677,27 @@ router.delete(
       res.status(400).json({ error: "Invalid content item." });
       return;
     }
+    const [item] = await db
+      .select({ id: contentItems.id, status: contentItems.status })
+      .from(contentItems)
+      .where(eq(contentItems.id, params.data.contentItemId))
+      .limit(1);
+    if (!item) {
+      res.status(404).json({ error: "Content item not found." });
+      return;
+    }
+    if (item.status !== "scheduled") {
+      res.status(409).json({ error: "Only scheduled items can be unscheduled." });
+      return;
+    }
     await db
       .update(contentItems)
-      .set({ scheduledFor: null, status: "approved", updatedAt: new Date() })
+      .set({
+        scheduledFor: null,
+        status: "approved",
+        failureReason: null,
+        updatedAt: new Date(),
+      })
       .where(eq(contentItems.id, params.data.contentItemId));
     res.sendStatus(204);
   },
@@ -585,7 +718,11 @@ router.post(
       return;
     }
     const [item] = await db
-      .select({ id: contentItems.id, status: contentItems.status })
+      .select({
+        id: contentItems.id,
+        selectedSceneId: contentItems.selectedSceneId,
+        status: contentItems.status,
+      })
       .from(contentItems)
       .where(eq(contentItems.id, params.data.contentItemId))
       .limit(1);
@@ -593,13 +730,13 @@ router.post(
       res.status(404).json({ error: "Content item not found." });
       return;
     }
-    if (!["approved", "scheduled"].includes(item.status)) {
+    if (!item.selectedSceneId || item.status !== "scheduled") {
       res.status(409).json({
-        error: "Only approved or scheduled content can record publication.",
+        error: "Only an approved, scheduled item can record a publication result.",
       });
       return;
     }
-    const [updated] = await db
+    await db
       .update(contentItems)
       .set({
         status: body.data.status,
@@ -612,19 +749,7 @@ router.post(
             : null,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(contentItems.id, params.data.contentItemId),
-          inArray(contentItems.status, ["approved", "scheduled"]),
-        ),
-      )
-      .returning({ id: contentItems.id });
-    if (!updated) {
-      res.status(409).json({
-        error: "The content item changed before publication could be recorded.",
-      });
-      return;
-    }
+      .where(eq(contentItems.id, params.data.contentItemId));
     res.sendStatus(204);
   },
 );

@@ -10,5 +10,6 @@ export interface StudioCapabilities {
   imageGeneration: boolean;
   referenceGuidance: boolean;
   provider: string;
+  openaiConfigured: boolean;
   grokConfigured: boolean;
 }

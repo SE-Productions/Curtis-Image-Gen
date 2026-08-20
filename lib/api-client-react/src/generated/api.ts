@@ -41,6 +41,7 @@ import type {
   StudioCapabilities,
   StudioImage,
   StudioImageInput,
+  StudioLockedResponse,
   StudioPostCopy,
   StudioPostCopyInput,
   StudioScene,
@@ -1432,7 +1433,7 @@ export const getGetCreatorDnaQueryKey = () => {
     }
 
 
-export const getGetCreatorDnaQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCreatorDnaQueryOptions = <TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<StudioLockedResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1451,14 +1452,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetCreatorDnaQueryResult = NonNullable<Awaited<ReturnType<typeof getCreatorDna>>>
-export type GetCreatorDnaQueryError = ErrorType<unknown>
+export type GetCreatorDnaQueryError = ErrorType<StudioLockedResponse>
 
 
 /**
  * @summary Get the creator context used for planning
  */
 
-export function useGetCreatorDna<TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<unknown>>(
+export function useGetCreatorDna<TData = Awaited<ReturnType<typeof getCreatorDna>>, TError = ErrorType<StudioLockedResponse>>(
   options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreatorDna>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1502,7 +1503,7 @@ export const updateCreatorDna = async (creatorDnaInput: CreatorDnaInput, options
 
 
 
-export const getUpdateCreatorDnaMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getUpdateCreatorDnaMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext> => {
 
@@ -1531,12 +1532,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateCreatorDnaMutationResult = NonNullable<Awaited<ReturnType<typeof updateCreatorDna>>>
     export type UpdateCreatorDnaMutationBody = BodyType<CreatorDnaInput>
-    export type UpdateCreatorDnaMutationError = ErrorType<ErrorResponse>
+    export type UpdateCreatorDnaMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Save the creator context used for planning
  */
-export const useUpdateCreatorDna = <TError = ErrorType<ErrorResponse>,
+export const useUpdateCreatorDna = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCreatorDna>>, TError,{data: BodyType<CreatorDnaInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateCreatorDna>>,
@@ -1587,7 +1588,7 @@ export const getGetContentPlanQueryKey = (params?: GetContentPlanParams,) => {
     }
 
 
-export const getGetContentPlanQueryOptions = <TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<unknown>>(params: GetContentPlanParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetContentPlanQueryOptions = <TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<ErrorResponse | StudioLockedResponse>>(params: GetContentPlanParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1606,14 +1607,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetContentPlanQueryResult = NonNullable<Awaited<ReturnType<typeof getContentPlan>>>
-export type GetContentPlanQueryError = ErrorType<unknown>
+export type GetContentPlanQueryError = ErrorType<ErrorResponse | StudioLockedResponse>
 
 
 /**
  * @summary Get a persisted weekly content plan
  */
 
-export function useGetContentPlan<TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<unknown>>(
+export function useGetContentPlan<TData = Awaited<ReturnType<typeof getContentPlan>>, TError = ErrorType<ErrorResponse | StudioLockedResponse>>(
  params: GetContentPlanParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContentPlan>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
@@ -1657,7 +1658,7 @@ export const generateContentPlan = async (generateContentPlanInput: GenerateCont
 
 
 
-export const getGenerateContentPlanMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getGenerateContentPlanMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext> => {
 
@@ -1686,12 +1687,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type GenerateContentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof generateContentPlan>>>
     export type GenerateContentPlanMutationBody = BodyType<GenerateContentPlanInput>
-    export type GenerateContentPlanMutationError = ErrorType<ErrorResponse>
+    export type GenerateContentPlanMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Generate and persist an editable seven-day content plan
  */
-export const useGenerateContentPlan = <TError = ErrorType<ErrorResponse>,
+export const useGenerateContentPlan = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateContentPlan>>, TError,{data: BodyType<GenerateContentPlanInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof generateContentPlan>>,
@@ -1729,7 +1730,7 @@ export const updateContentItem = async (contentItemId: string,
 
 
 
-export const getUpdateContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getUpdateContentItemMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext> => {
 
@@ -1758,12 +1759,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateContentItem>>>
     export type UpdateContentItemMutationBody = BodyType<ContentItemUpdate>
-    export type UpdateContentItemMutationError = ErrorType<ErrorResponse>
+    export type UpdateContentItemMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Edit a planned content item
  */
-export const useUpdateContentItem = <TError = ErrorType<ErrorResponse>,
+export const useUpdateContentItem = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateContentItem>>, TError,{contentItemId: string;data: BodyType<ContentItemUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateContentItem>>,
@@ -1800,7 +1801,7 @@ export const deleteContentItem = async (contentItemId: string, options?: Paramet
 
 
 
-export const getDeleteContentItemMutationOptions = <TError = ErrorType<unknown>,
+export const getDeleteContentItemMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext> => {
 
@@ -1829,12 +1830,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type DeleteContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteContentItem>>>
 
-    export type DeleteContentItemMutationError = ErrorType<unknown>
+    export type DeleteContentItemMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Delete a planned content item
  */
-export const useDeleteContentItem = <TError = ErrorType<unknown>,
+export const useDeleteContentItem = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof deleteContentItem>>,
@@ -1872,7 +1873,7 @@ export const addContentVariation = async (contentItemId: string,
 
 
 
-export const getAddContentVariationMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getAddContentVariationMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext> => {
 
@@ -1901,12 +1902,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type AddContentVariationMutationResult = NonNullable<Awaited<ReturnType<typeof addContentVariation>>>
     export type AddContentVariationMutationBody = BodyType<AddContentVariationInput>
-    export type AddContentVariationMutationError = ErrorType<ErrorResponse>
+    export type AddContentVariationMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Link a real generated scene to a planned content item
  */
-export const useAddContentVariation = <TError = ErrorType<ErrorResponse>,
+export const useAddContentVariation = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addContentVariation>>, TError,{contentItemId: string;data: BodyType<AddContentVariationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof addContentVariation>>,
@@ -1944,7 +1945,7 @@ export const approveContentItem = async (contentItemId: string,
 
 
 
-export const getApproveContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getApproveContentItemMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext> => {
 
@@ -1973,12 +1974,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ApproveContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof approveContentItem>>>
     export type ApproveContentItemMutationBody = BodyType<ApproveContentItemInput>
-    export type ApproveContentItemMutationError = ErrorType<ErrorResponse>
+    export type ApproveContentItemMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Approve one generated variation for publishing
  */
-export const useApproveContentItem = <TError = ErrorType<ErrorResponse>,
+export const useApproveContentItem = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveContentItem>>, TError,{contentItemId: string;data: BodyType<ApproveContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof approveContentItem>>,
@@ -2016,7 +2017,7 @@ export const scheduleContentItem = async (contentItemId: string,
 
 
 
-export const getScheduleContentItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+export const getScheduleContentItemMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext> => {
 
@@ -2045,12 +2046,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ScheduleContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof scheduleContentItem>>>
     export type ScheduleContentItemMutationBody = BodyType<ScheduleContentItemInput>
-    export type ScheduleContentItemMutationError = ErrorType<ErrorResponse>
+    export type ScheduleContentItemMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Schedule an approved content item
  */
-export const useScheduleContentItem = <TError = ErrorType<ErrorResponse>,
+export const useScheduleContentItem = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleContentItem>>, TError,{contentItemId: string;data: BodyType<ScheduleContentItemInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof scheduleContentItem>>,
@@ -2087,7 +2088,7 @@ export const unscheduleContentItem = async (contentItemId: string, options?: Par
 
 
 
-export const getUnscheduleContentItemMutationOptions = <TError = ErrorType<unknown>,
+export const getUnscheduleContentItemMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext> => {
 
@@ -2116,12 +2117,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UnscheduleContentItemMutationResult = NonNullable<Awaited<ReturnType<typeof unscheduleContentItem>>>
 
-    export type UnscheduleContentItemMutationError = ErrorType<unknown>
+    export type UnscheduleContentItemMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Return a scheduled content item to approved status
  */
-export const useUnscheduleContentItem = <TError = ErrorType<unknown>,
+export const useUnscheduleContentItem = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unscheduleContentItem>>, TError,{contentItemId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof unscheduleContentItem>>,
@@ -2159,7 +2160,7 @@ export const recordContentPublication = async (contentItemId: string,
 
 
 
-export const getRecordContentPublicationMutationOptions = <TError = ErrorType<unknown>,
+export const getRecordContentPublicationMutationOptions = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext> => {
 
@@ -2188,12 +2189,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RecordContentPublicationMutationResult = NonNullable<Awaited<ReturnType<typeof recordContentPublication>>>
     export type RecordContentPublicationMutationBody = BodyType<RecordContentPublicationInput>
-    export type RecordContentPublicationMutationError = ErrorType<unknown>
+    export type RecordContentPublicationMutationError = ErrorType<ErrorResponse | StudioLockedResponse>
 
     /**
  * @summary Record the real Instagram publication result
  */
-export const useRecordContentPublication = <TError = ErrorType<unknown>,
+export const useRecordContentPublication = <TError = ErrorType<ErrorResponse | StudioLockedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordContentPublication>>, TError,{contentItemId: string;data: BodyType<RecordContentPublicationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof recordContentPublication>>,

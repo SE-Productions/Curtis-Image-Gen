@@ -13,6 +13,7 @@ export interface StudioCapabilities {
   imageGeneration: boolean;
   referenceGuidance: boolean;
   provider: string;
+  openaiConfigured: boolean;
   grokConfigured: boolean;
 }
 
@@ -461,6 +462,7 @@ export interface ApproveContentItemInput {
 }
 
 export interface ScheduleContentItemInput {
+  /** UTC timestamp. Its UTC calendar date must equal the content item's planned date. */
   scheduledFor: string;
 }
 
@@ -483,10 +485,13 @@ export interface ErrorResponse {
   error: string;
 }
 
+/**
+ * Studio is locked
+ */
+export type StudioLockedResponse = ErrorResponse;
 export type GetContentPlanParams = {
 /**
  * @pattern ^\d{4}-\d{2}-\d{2}$
  */
 weekStart: string;
 };
-

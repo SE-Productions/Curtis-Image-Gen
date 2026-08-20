@@ -5,6 +5,8 @@ import {
   getGetContentPlanQueryKey,
   useScheduleContentItem,
   useUnscheduleContentItem,
+  useGetStudioSession,
+  getGetStudioSessionQueryKey,
   ContentItem
 } from "@workspace/api-client-react";
 import { format, parseISO, isSameDay } from "date-fns";
@@ -18,16 +20,27 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { getCurrentWeekStart } from "@/lib/date-utils";
 import { InstagramPublishDialog } from "@/components/instagram-publish-dialog";
+import { Link } from "wouter";
 
 export default function Calendar() {
   const queryClient = useQueryClient();
   const weekStart = getCurrentWeekStart();
   const [schedulingItem, setSchedulingItem] = useState<string | null>(null);
   const [scheduledTime, setScheduledTime] = useState("");
+  const { data: studioSession, isLoading: sessionLoading } = useGetStudioSession({
+    query: { retry: false, queryKey: getGetStudioSessionQueryKey() },
+  });
+  const canLoadStudio =
+    studioSession?.unlocked === true || studioSession?.required === false;
 
   const { data: planResult, isLoading } = useGetContentPlan(
     { weekStart },
-    { query: { queryKey: getGetContentPlanQueryKey({ weekStart }) } }
+    {
+      query: {
+        enabled: canLoadStudio,
+        queryKey: getGetContentPlanQueryKey({ weekStart }),
+      },
+    },
   );
 
   const scheduleMutation = useScheduleContentItem({
@@ -90,7 +103,17 @@ export default function Calendar() {
           </div>
         </div>
 
-        {isLoading ? (
+        {!sessionLoading && !canLoadStudio ? (
+          <Card className="border-amber-200 bg-amber-50/70 p-6 text-center">
+            <h3 className="font-medium text-foreground">Unlock the private Calendar</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Calendar slots and publication history are available after the studio is unlocked.
+            </p>
+            <Link href="/settings" className="mt-4 inline-flex">
+              <Button>Open Settings</Button>
+            </Link>
+          </Card>
+        ) : isLoading ? (
           <div className="py-24 flex flex-col items-center justify-center text-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
             <p className="text-muted-foreground">Loading calendar...</p>
@@ -151,6 +174,7 @@ export default function Calendar() {
                                 item.status === "published" ? "bg-primary/20 text-primary border-primary/30" :
                                 item.status === "scheduled" ? "bg-purple-100 text-purple-800 border-purple-200" :
                                 item.status === "approved" ? "bg-emerald-100 text-emerald-800 border-emerald-200" :
+                                item.status === "failed" ? "bg-destructive/15 text-destructive border-destructive/30" :
                                 "bg-muted text-muted-foreground"
                               }>
                                 {item.status.toUpperCase()}
@@ -164,7 +188,7 @@ export default function Calendar() {
                                 {item.status === "scheduled" && item.scheduledFor && (
                                   <div className="flex items-center text-purple-700 dark:text-purple-300 font-medium">
                                     <Clock className="w-4 h-4 mr-1.5" />
-                                    {format(parseISO(item.scheduledFor), "h:mm a")}
+                                    {format(parseISO(item.scheduledFor), "HH:mm")} UTC
                                   </div>
                                 )}
                                 {item.status === "published" && item.publishedAt && (
@@ -173,15 +197,21 @@ export default function Calendar() {
                                     Published {format(parseISO(item.publishedAt), "MMM d")}
                                   </div>
                                 )}
+                                {item.status === "failed" && (
+                                  <div className="text-destructive font-medium">
+                                    Publish failed
+                                  </div>
+                                )}
                               </div>
                               
                               <div className="flex items-center gap-2">
-                                {item.status === "approved" && (
+                                {["approved", "failed"].includes(item.status) && (
                                   <>
                                     {schedulingItem === item.id ? (
                                       <div className="flex items-center gap-2">
                                         <Input 
                                           type="time" 
+                                          aria-label="Schedule time in UTC"
                                           value={scheduledTime}
                                           onChange={e => setScheduledTime(e.target.value)}
                                           className="h-8 w-32 text-xs bg-background"
@@ -191,11 +221,11 @@ export default function Calendar() {
                                           className="h-8"
                                           disabled={!scheduledTime || scheduleMutation.isPending}
                                           onClick={() => {
-                                            // combine planDate and time
-                                            const dateTimeStr = `${item.planDate}T${scheduledTime}:00`;
+                                            // The API treats scheduledFor as UTC so it remains on the selected plan date.
+                                            const dateTimeStr = `${item.planDate}T${scheduledTime}:00Z`;
                                             scheduleMutation.mutate({
                                               contentItemId: item.id,
-                                              data: { scheduledFor: new Date(dateTimeStr).toISOString() }
+                                              data: { scheduledFor: dateTimeStr }
                                             });
                                           }}
                                         >
@@ -254,6 +284,14 @@ export default function Calendar() {
                                 )}
                               </div>
                             </div>
+                            {item.instagramPostId && (
+                              <p className="mt-3 text-xs text-muted-foreground">
+                                Instagram post ID: <span className="font-mono">{item.instagramPostId}</span>
+                              </p>
+                            )}
+                            {item.failureReason && (
+                              <p className="mt-3 text-xs text-destructive">{item.failureReason}</p>
+                            )}
                           </div>
                         </div>
                       </Card>
@@ -264,6 +302,12 @@ export default function Calendar() {
             ))}
           </div>
         )}
+        <div className="mt-8 rounded-lg border border-amber-200 bg-amber-50/70 p-4 text-sm text-amber-950 dark:border-amber-900 dark:bg-amber-950/20 dark:text-amber-100">
+          <p className="font-medium">Manual publishing on the free deployment</p>
+          <p className="mt-1 text-xs leading-5 opacity-90">
+            Scheduled slots organize approved work but do not publish by themselves while the Render free web service can sleep. Open a scheduled item and choose Publish Now when you are ready. Unattended daily publishing requires a separately configured always-on worker.
+          </p>
+        </div>
       </main>
     </div>
   );

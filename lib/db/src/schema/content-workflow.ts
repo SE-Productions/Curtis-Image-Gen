@@ -29,7 +29,7 @@ export const contentPlans = pgTable(
   "content_plans",
   {
     id: text("id").primaryKey(),
-    weekStart: date("week_start").notNull(),
+    weekStart: date("week_start", { mode: "string" }).notNull(),
     brief: text("brief").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -48,7 +48,7 @@ export const contentItems = pgTable(
     planId: text("plan_id")
       .notNull()
       .references(() => contentPlans.id, { onDelete: "cascade" }),
-    planDate: date("plan_date").notNull(),
+    planDate: date("plan_date", { mode: "string" }).notNull(),
     title: text("title").notNull(),
     concept: text("concept").notNull(),
     prompt: text("prompt").notNull(),
@@ -71,6 +71,10 @@ export const contentItems = pgTable(
       .notNull(),
   },
   (table) => [
+    uniqueIndex("content_items_plan_date_unique").on(
+      table.planId,
+      table.planDate,
+    ),
     uniqueIndex("content_items_one_publication_per_day_unique")
       .on(sql`((${table.scheduledFor} AT TIME ZONE 'UTC')::date)`)
       .where(
@@ -88,7 +92,7 @@ export const contentVariations = pgTable(
       .references(() => contentItems.id, { onDelete: "cascade" }),
     sceneId: text("scene_id")
       .notNull()
-      .references(() => scenes.id, { onDelete: "cascade" }),
+      .references(() => scenes.id, { onDelete: "restrict" }),
     ordinal: integer("ordinal").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

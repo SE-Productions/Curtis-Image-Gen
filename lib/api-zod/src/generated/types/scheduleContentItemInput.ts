@@ -7,5 +7,6 @@
  */
 
 export interface ScheduleContentItemInput {
+  /** UTC timestamp. Its UTC calendar date must equal the content item's planned date. */
   scheduledFor: Date;
 }

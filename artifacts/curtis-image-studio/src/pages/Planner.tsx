@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { 
   useGetCreatorDna, 
@@ -8,7 +8,9 @@ import {
   getGetContentPlanQueryKey,
   useGenerateContentPlan,
   useGetStudioCapabilities,
-  getGetStudioCapabilitiesQueryKey
+  getGetStudioCapabilitiesQueryKey,
+  useGetStudioSession,
+  getGetStudioSessionQueryKey,
 } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-mark";
@@ -23,23 +25,37 @@ import { getCurrentWeekStart } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { PlanItemCard } from "@/components/plan-item-card";
+import { Link } from "wouter";
 
 export default function Planner() {
   const queryClient = useQueryClient();
   const weekStart = getCurrentWeekStart();
   const [brief, setBrief] = useState("");
+  const { data: studioSession, isLoading: sessionLoading } = useGetStudioSession({
+    query: { retry: false, queryKey: getGetStudioSessionQueryKey() },
+  });
+  const canLoadStudio =
+    studioSession?.unlocked === true || studioSession?.required === false;
   
   const { data: capabilities } = useGetStudioCapabilities({
     query: { queryKey: getGetStudioCapabilitiesQueryKey() }
   });
 
   const { data: dna, isLoading: dnaLoading } = useGetCreatorDna({
-    query: { queryKey: getGetCreatorDnaQueryKey() }
+    query: {
+      enabled: canLoadStudio,
+      queryKey: getGetCreatorDnaQueryKey(),
+    }
   });
 
   const { data: planResult, isLoading: planLoading } = useGetContentPlan(
     { weekStart }, 
-    { query: { queryKey: getGetContentPlanQueryKey({ weekStart }) } }
+    {
+      query: {
+        enabled: canLoadStudio,
+        queryKey: getGetContentPlanQueryKey({ weekStart }),
+      },
+    },
   );
 
   const updateDnaMutation = useUpdateCreatorDna({
@@ -137,6 +153,21 @@ export default function Planner() {
       </header>
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:py-12 flex-1 flex flex-col gap-8">
+        {!sessionLoading && !canLoadStudio && (
+          <Card className="border-amber-200 bg-amber-50/70">
+            <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+              <div>
+                <h2 className="font-medium text-foreground">Unlock the private workspace</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Creator DNA, plans, and generated variations stay private until the studio is unlocked.
+                </p>
+              </div>
+              <Link href="/settings">
+                <Button>Open Settings</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
         {/* Creator DNA Section */}
         <Card className="border-border shadow-sm bg-card overflow-hidden">
           <div 
@@ -220,7 +251,7 @@ export default function Planner() {
                 </div>
               </div>
               <div className="mt-6 flex justify-end">
-                <Button onClick={handleSaveDna} disabled={updateDnaMutation.isPending}>
+                <Button onClick={handleSaveDna} disabled={!canLoadStudio || updateDnaMutation.isPending}>
                   {updateDnaMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Save Creator DNA
                 </Button>
@@ -248,7 +279,7 @@ export default function Planner() {
                 />
                 <Button 
                   onClick={handleGeneratePlan} 
-                  disabled={generatePlanMutation.isPending}
+                  disabled={!canLoadStudio || generatePlanMutation.isPending}
                   className="whitespace-nowrap"
                 >
                   {generatePlanMutation.isPending ? (
@@ -262,7 +293,11 @@ export default function Planner() {
             )}
           </div>
 
-          {planLoading ? (
+          {!canLoadStudio ? (
+            <div className="py-20 flex flex-col items-center justify-center text-muted-foreground border border-border border-dashed rounded-xl">
+              <p>Unlock the studio to view this week&apos;s content plan.</p>
+            </div>
+          ) : planLoading ? (
             <div className="py-20 flex flex-col items-center justify-center text-muted-foreground border border-border border-dashed rounded-xl">
               <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
               <p>Loading plan...</p>

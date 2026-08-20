@@ -39,6 +39,7 @@ export * from './studioImageInput';
 export * from './studioImageInputAspectRatio';
 export * from './studioImageInputFidelity';
 export * from './studioImageInputProvider';
+export * from './studioLockedResponse';
 export * from './studioPostCopy';
 export * from './studioPostCopyInput';
 export * from './studioPostCopyInputFormat';
