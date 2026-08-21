@@ -140,8 +140,13 @@ function CalendarPage() {
                       }
                     }}
                     onDelete={async () => {
-                      await deletePost({ data: { id: post.id } });
-                      await refresh();
+                      try {
+                        await deletePost({ data: { id: post.id } });
+                        await refresh();
+                        toast.success("Removed");
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : "Could not remove");
+                      }
                     }}
                   />
                 ))}

@@ -3,12 +3,14 @@ import {
   Aperture,
   CalendarDays,
   Cpu,
+  Download,
   Images,
   LockKeyhole,
   Settings,
   Sparkles,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { Badge } from "@/components/ui/badge";
 import { useStudioUi } from "@/lib/studio-store";
@@ -38,6 +40,29 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const facePreview = useStudioUi((s) => s.facePreview);
   const locked = Boolean(facePreview);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!deferredPrompt) return;
+    await deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") setDeferredPrompt(null);
+  }
+
+  type BeforeInstallPromptEvent = {
+    prompt(): Promise<void>;
+    userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+    preventDefault(): void;
+  } & Event;
 
   return (
     <div className="min-h-dvh bg-bg pb-24 text-fg md:pb-0">
@@ -67,6 +92,16 @@ export function AppShell({
                 <Cpu className="size-3" />
                 NVIDIA
               </Badge>
+            ) : null}
+            {deferredPrompt ? (
+              <button
+                type="button"
+                onClick={handleInstall}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-muted transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+              >
+                <Download className="size-4" />
+                <span className="hidden sm:inline">Install app</span>
+              </button>
             ) : null}
             <nav
               aria-label="Studio"
